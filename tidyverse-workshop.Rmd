@@ -293,5 +293,5 @@ baseball
 
 2. For the baseball data, find the mean and SD of the number of runs.
 
-3. Find the mean and SD of the number of runs for each league. How do the results compare? 
+3. Find the mean and SD of the number of runs for each league. How do the results compare?  
 
