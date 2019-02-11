@@ -336,6 +336,8 @@ athletes %>% select(BMI)
 athletes %>% select(Sport, BMI)
 ```
 
+This one is called a "select-helper":
+
 ```{r}
 athletes %>% select(starts_with("S"))
 ```
@@ -420,4 +422,48 @@ athletes %>% mutate(
 
 ## Tidying untidy data
 
+Tidy data:
+
+- each observation in one row
+- each variable in one column
+
+For example, weights of 27 rats at different times:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/d29/ratweight.csv"
+weights=read_csv(my_url)
+weights
+```
+
+Column `drug` is tidy. But the five columns `Time0` through `Time4` are all measurements of the same thing (weight) at different times, and there are five observations in each row. So if we can make a column of weights and a column of times, labelled by the right rat, we should be good.
+
+This is what `gather` does:
+
+```{r}
+weights %>% gather(time, weight, starts_with("Time")) -> weights.tidy
+weights.tidy
+```
+
+There were 27 rats, each measured at 5 times, so we have this many observations:
+
+```{r}
+27*5
+```
+
+In gather:
+- what makes the columns (to be gathered up) different
+- what makes them the same
+- the columns to gather (eg. with a select-helper)
+
+Now eg. we can plot each rat's weight over time:
+
+```{r}
+ggplot(weights.tidy, aes(x=time, y=weight, group=rat))+geom_point()+geom_line()
+```
+
+or even coloured by which drug they were on:
+
+```{r}
+ggplot(weights.tidy, aes(x=time, y=weight, group=rat, colour=drug))+geom_point()+geom_line()
+```
 
