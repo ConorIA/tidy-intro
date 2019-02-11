@@ -275,11 +275,32 @@ coffee %>% group_by(cup) %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(temp
 
 The Nissan cups have a smaller average temperature loss and are also less variable (more consistent).
 
+Since this output is a dataframe you can even pipe it into a plot:
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff),n=n()) %>% 
+  ggplot(aes(x=cup, y=temp_mean))+geom_point()
+```
+
+
 You can calculate other statistics, any that R and `dplyr` between them know about:
 
 ```{r}
 coffee %>% group_by(cup) %>% summarize(med=mean(tempdiff), Q1=quantile(tempdiff, 0.25), Q3=quantile(tempdiff, 0.75), iqr=IQR(tempdiff))
 ```
+
+A shortcut: `count` counts many observations there are in each group defined by a categorical variable:
+
+```{r}
+coffee %>% count(cup)
+```
+
+This is short for
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(n=n())
+```
+
 
 ### Practice summarizing data
 
@@ -293,5 +314,106 @@ baseball
 
 2. For the baseball data, find the mean and SD of the number of runs.
 
-3. Find the mean and SD of the number of runs for each league. How do the results compare?  
+3. Find the mean and SD of the number of runs for each league. How do the results compare? 
+
+
+## Handling data frames: choosing rows and columns, sorting, creating new columns
+
+Australian athletes again:
+
+```{r}
+athletes
+```
+
+
+To choose columns of a dataframe, use `select`, eg:
+
+```{r}
+athletes %>% select(BMI)
+```
+
+```{r}
+athletes %>% select(Sport, BMI)
+```
+
+```{r}
+athletes %>% select(starts_with("S"))
+```
+There is also `ends_with`.
+
+```{r}
+athletes %>% select(contains("c"))
+```
+
+```{r}
+athletes %>% select(Sex:RCC)
+```
+
+To select *rows*, use `filter` with a condition that has to be `TRUE` for the rows you want:
+
+```{r}
+athletes %>% filter(Sport=="Tennis")
+```
+
+```{r}
+athletes %>% filter(BMI>30)
+```
+
+Combine:
+
+```{r}
+athletes %>% select(Sex, Sport, BMI) %>% filter(BMI>30)
+```
+
+You can even `filter` by something that isn't shown at the end, as long as you filter first:
+
+```{r}
+athletes %>% filter(BMI>30) %>% select(Sex, Sport, Wt)
+```
+
+Sort using `arrange`:
+
+```{r}
+athletes %>% arrange(Wt) %>% select(Sex, Sport, Wt)
+```
+
+In descending order:
+
+```{r}
+athletes %>% arrange(desc(BMI))
+```
+
+Using a second variable to break ties:
+
+```{r}
+athletes %>% arrange(Ferr, BMI)
+```
+
+To create a new column, use `mutate`. For example, these weights are in kg, with one kg being 2.2 lbs:
+
+```{r}
+athletes %>% mutate(wt_lb=Wt*2.2) %>% select(Wt, wt_lb)
+```
+
+You can do several mutates at once, even splitting lines:
+
+```{r}
+athletes %>% mutate(
+  wt_lb=Wt*2.2,
+  ht_in=Ht/2.54
+) %>% select(starts_with("wt"),starts_with("ht"))
+```
+
+
+### Practice at handling data frames
+
+1. In the athletes data frame, choose three columns and display only those.
+
+2. Display all the athletes that are taller than 190 (cm). (column is called `Ht`.) 
+
+3. Find all the athletes taller than 190 cm, and count how many of them are male and how many female. 
+
+4. Display the athletes sorted in descending order by height `Ht`. What sport do most of the tallest athletes play?
+
+5. Create a new column that is each athlete's height in feet (there are 30.5 centimetres in a foot), and display both the original height and the new one (bonus: without naming the columns explicitly).
 
