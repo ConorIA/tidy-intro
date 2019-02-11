@@ -467,3 +467,108 @@ or even coloured by which drug they were on:
 ggplot(weights.tidy, aes(x=time, y=weight, group=rat, colour=drug))+geom_point()+geom_line()
 ```
 
+This is called a "spaghetti plot". This one says that thiouracil inhibits growth but thyroxin has little effect vs. control.
+
+(Imagine drawing the graph without tidying the data!)
+
+
+Now look at this one:
+
+```{r}
+seps = read_csv("http://www.mm-c.me/mdsi/hospitals93to98.csv")
+seps
+```
+
+These are numbers of patient days and "separations" for hospital admissions for different reasons during different financial years. First we need to gather up the years (I'll call "value" what they have in common):
+
+```{r}
+seps %>% gather(year, value, starts_with("FY"))
+```
+
+But now `value` encodes two different things: patient days and separations. This data frame is actually *too* long, and needs widening out. `spread` does the opposite of `gather`: we want a column of patient days and a column of separations for each year and reason:
+
+```{r}
+seps %>% gather(year, value, starts_with("FY")) %>% 
+  spread(Field, value)
+```
+
+Now we have something we can work with.
+
+Let's look at something different:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/d29/usa-1850-by-state.csv"
+usa1850=read_csv(my_url)
+usa1850
+```
+
+In 1850, for each of the (then) states of the US, how many people were born there, and how many were born elsewhere, and if so, where? Eg. there were 91 people currently living in Alabama who were born in Arkansas, and 33 who were born in Austria. Can we tidy this up?
+
+```{r}
+usa1850 %>% gather(birthplace, freq, -`State Name`)
+```
+
+The birthplace column encodes two things: were they born in the US ("native") or elsewhere ("foreign"), and where?
+
+```{r}
+usa1850 %>% gather(birthplace, freq, -`State Name`) %>% 
+  separate(birthplace, into=c("was_usa", "where_born"), sep=": ") -> d
+d
+```
+
+Two thoughts:
+
+1. What fraction of the people living in each state were born there?
+
+2. What fraction of the people living in each state were foreign-born?
+
+1:
+```{r}
+d %>% mutate(born_there=(`State Name`==where_born)) %>% 
+  group_by(`State Name`) %>% count(born_there, wt=freq) %>% 
+  mutate(proportion=n/sum(n)) %>% 
+  filter(born_there) %>% arrange(desc(proportion)) -> d1
+d1
+```
+
+2:
+
+```{r}
+d %>% group_by(`State Name`) %>% count(was_usa, wt=freq) %>% 
+  mutate(proportion=n/sum(n)) %>% filter(was_usa=="Native-born") %>% 
+  arrange(desc(proportion)) -> d2
+d2
+```
+
+```{r}
+d1 %>% left_join(d2, by=c("State Name"="State Name")) %>% 
+  select(res=`State Name`, in_state=proportion.x, in_us=proportion.y) %>% 
+  ggplot(aes(x=in_state, y=in_us, label=res)) + geom_point() + geom_text_repel()
+```
+
+
+
+
+### Practice tidying data
+
+1. Run this code to get an untidy data frame:
+
+```{r}
+d=tribble(
+  ~trt1, ~trt2, ~control,
+  10, 13, 8,
+  11, 12, 7,
+  12, 12, 7,
+  11, 11, 8
+)
+d
+```
+
+This is a common layout for data in one-way ANOVA: there are 12 observations, four for each of two actual treatments and a control. Make a tidy data frame, bearing in mind that we have twelve measurements of yield, four for each of the three treatments. Hint: the select-helper `everything()` can be used to gather up all the columns.  Check that your resulting tidy data frame has the right number of rows.
+
+
+
+more problems needed
+
+
+## Next, stringr, forcats, purrr
