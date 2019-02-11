@@ -1,0 +1,8 @@
+Categorical Quantitative Graph
+    1           0         bar chart
+    0           1         histogram
+    2           0         grouped bar charts
+    1           1         side-by-side boxplots
+    0           2         scatterplot
+    2           1         grouped boxplots
+    1           2         scatterplot identifying_points

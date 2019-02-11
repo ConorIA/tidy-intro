@@ -1,0 +1,297 @@
+---
+title: "Tidyverse Intro"
+output: html_notebook
+---
+
+## Packages
+
+```{r}
+library(tidyverse)
+```
+
+description of what Tidyverse contains
+per Conor
+
+## What we look at today
+
+1. `readr` for reading in data from files
+2. `ggplot2` for making graphs
+3. `dplyr` for extracting things from and summarizing data frames
+4. `tidyr` for reorganizing data frames
+5. `forcats` for organizing factors (categorical variables)
+6. `lubridate` for dates and times
+7. `purrr` for "for-each" in a data frame, and "split/apply/combine"
+
+and whatever else I missed
+
+and later we look at a case study in which some of these tools are brought together.
+
+We will intersperse time for you to practice these ideas.
+
+## To install the Tidyverse
+
+```{r, eval=F}
+install.packages("tidyverse")
+```
+
+May take some time because it installs a lot of packages.
+
+## Reading in data
+
+To do anything with data, we have to get the data in the first place, usually from a data file. Package `readr` has functions beginning `read_` for doing this, according to form of input.
+
+Examples:
+
+- data from a spreadsheet: save spreadsheet as .csv, read in using `read_csv`
+- data in a text file, separated by single space (or single anything): `read_delim`
+- data in text file, lined up in columns: `read_table`
+
+All of these can read from URLs, or from files on your computer. 
+
+Reading from URL: set up the URL first
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/d29/Pizza.csv"
+Pizza=read_csv(my_url)
+```
+
+Tells you what it read (compare with what you were expecting). Then look at data frame:
+
+```{r}
+Pizza
+```
+
+The `readr` functions return a `tibble` which by default displays only the first ten lines (click Next to see more).
+
+or maybe this way (applies to any data frame):
+
+```{r}
+glimpse(Pizza)
+```
+
+Space-delimited:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/baseball.txt"
+baseball=read_delim(my_url, " ")
+```
+
+```{r}
+baseball
+```
+
+`read_delim` reads files delimited by any single character, not just a space.
+
+Aligned by columns:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/caribou.txt"
+denali=read_table(my_url)
+```
+
+```{r}
+denali
+```
+
+To find files on your computer, you can use this idea:
+
+```{r, eval=F}
+f=file.choose()
+```
+
+navigating to the file you want. The value saved in `f` can be used as a filename in a `readr` function, thus:
+
+```{r}
+f
+thing=read_delim(f, " ")
+```
+
+```{r}
+thing
+```
+
+`readr` reads text in as text, not as factors (that you might be used to from `read.table` and friends). Usually it is fine to have categorical variables as text rather than factors, but occasionally it matters (see `forcats` later).
+
+### Practice at reading in data
+
+1. Read the .csv file at `http://www.utsc.utoronto.ca/~butler/c32/coasters.csv` into a dataframe and display it. (Copy and paste the URL.)
+2. Read in the space-delimited text file at `http://www.utsc.utoronto.ca/~butler/c32/coffee.txt` into a dataframe and display it.
+3. Find a .csv file on your own computer and read that into a dataframe. If you don't have one, find a spreadsheet, save it as a .csv first and read that in. You might like to use `file.choose` to find it.
+
+## Making graphs
+
+`ggplot` is the function for making any graphs at all. The syntax looks odd at first, but it has to include "what to plot" and "how to plot it".
+
+The roller coasters data from the previous exercise looks like this:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/coasters.csv"
+coasters=read_csv(my_url)
+coasters
+```
+
+For each of the roller coasters, the drop (in feet, from start to finish) and the duration of the ride (in seconds) are recorded. These are two quantitative variables (measured, not categorized), so a scatterplot would be a way to look for any relationship between them. A scatterplot has an x (drop, here) and a y (duration), so a scatterplot goes like this:
+
+```{r}
+ggplot(coasters, aes(x=drop, y=duration))+geom_point()
+```
+
+Extra: label the points by which rollercoaster they are thus:
+
+```{r}
+library(ggrepel)
+ggplot(coasters, aes(x=drop, y=duration, label=coaster_name))+geom_point()+geom_text_repel()
+```
+
+Compare the coffee cups, thus:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/coffee.txt"
+coffee=read_delim(my_url, " ")
+coffee
+```
+
+This has one quantitative variable `tempdiff` and one categorical variable `cup`, for which a good plot is a side-by-side boxplot. The groups in a boxplot go left to right (in `x` direction) and the quantitative variable goes up and down (`y`), so:
+
+```{r}
+ggplot(coffee, aes(x=cup, y=tempdiff))+geom_boxplot()
+```
+
+Here's what graphs you can draw when:
+
+```{r}
+graphs=read_table("graphs.txt")
+graphs
+```
+
+If you have more variables than this, you can use "facets" (subgraphs) to deal with those.
+
+For examples, I have some data on Australian athletes, thus:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/ais.txt"
+athletes=read_tsv(my_url)
+athletes
+```
+
+Examples:
+
+histogram of BMI:
+
+```{r}
+ggplot(athletes, aes(x=BMI))+geom_histogram()
+```
+
+Too many bins. Specify how many to use with `bins`, eg:
+
+```{r}
+ggplot(athletes, aes(x=BMI))+geom_histogram(bins=10)
+```
+
+How many people play each sport, by gender?
+
+```{r}
+ggplot(athletes,aes(x=Sport,fill=Sex))+
+geom_bar(position="dodge")
+```
+
+Height and weight by gender:
+
+```{r}
+ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()
+```
+
+Or add regression lines for each sex thus:
+
+```{r}
+ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()+
+  geom_smooth(method="lm")
+```
+
+
+height vs weight for each gender and each sport?
+
+*Four* variables, two categorical. Use one of the categorical variables to make facets:
+
+```{r}
+ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()+facet_wrap(~Sport)
+```
+
+These have the same scales for height and weight in each facet.
+
+BMI vs sport and gender, two ways:
+
+(a) grouped boxplots
+
+```{r}
+ggplot(athletes,aes(x=Sport,y=BMI,colour=Sex))+geom_boxplot()
+```
+
+(b) facetted by sport
+
+```{r}
+ggplot(athletes, aes(x=Sex, y=BMI))+geom_boxplot()+facet_wrap(~Sport)
+```
+
+### Practice drawing graphs yourself
+
+1. Read in the Australian athletes data set yourself. (Copy my code; the data values are separated by *tabs*, which we didn't see before.)
+
+2. Reproduce one of my graphs, for example a boxplot or scatterplot. Or try a bar chart (`geom_bar`).
+
+3. Make a graph of one of the types shown here, but with different variables.
+
+4. What do you think would be an interesting graph for this data set? Use `ggplot` to draw it.
+
+
+## Summarizing data
+
+We often want to summarize data, eg. to calculate means or to compare groups. The Tidyverse way to do this uses two tools from `dplyr`, `summarize` and `group_by`.
+
+Take the coffee data: 
+
+```{r}
+coffee
+```
+
+
+what is the mean and SD of temperature difference, and how many measurements were there altogether?
+
+```{r}
+coffee %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff),n=n())
+```
+
+The symbol `%>%` is called the **pipe**. I read it as "and then": "take `coffee`, and then summarize it as shown". Keyboard shortcut: control-shift-M.
+
+The thing on the left side of the pipe is a dataframe ("tibble"), and the thing on the right side of the pipe uses that dataframe as input, so that the column `tempdiff` comes from dataframe `coffee`.
+
+You can have long chains of pipes ("pipelines"). The dataframe coming out of each stage is used as (unnamed) input to the next stage.
+
+What we really wanted for the coffee data was to see how the types of cup compare in terms of temperature difference. That is done like this:
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff),n=n()) 
+```
+
+The Nissan cups have a smaller average temperature loss and are also less variable (more consistent).
+
+You can calculate other statistics, any that R and `dplyr` between them know about:
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(med=mean(tempdiff), Q1=quantile(tempdiff, 0.25), Q3=quantile(tempdiff, 0.75), iqr=IQR(tempdiff))
+```
+
+### Practice summarizing data
+
+1. Grab the baseball data if you don't already have it:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/baseball.txt"
+baseball=read_delim(my_url, " ")
+baseball
+```
+
+2. For the baseball data, find the mean and SD of the number of runs.
+
+3. Find the mean and SD of the number of runs for each league. How do the results compare?
+
