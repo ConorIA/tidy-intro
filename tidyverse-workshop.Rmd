@@ -411,9 +411,13 @@ athletes %>% mutate(
 
 2. Display all the athletes that are taller than 190 (cm). (column is called `Ht`.) 
 
-3. Find all the athletes taller than 190 cm, and count how many of them are male and how many female. 
+3. Find all the athletes taller than 190 cm, and count how many of them are male and how many female. (Hint: sequence of pipes.)
 
 4. Display the athletes sorted in descending order by height `Ht`. What sport do most of the tallest athletes play?
 
 5. Create a new column that is each athlete's height in feet (there are 30.5 centimetres in a foot), and display both the original height and the new one (bonus: without naming the columns explicitly).
+
+
+## Tidying untidy data
+
 
