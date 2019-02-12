@@ -518,9 +518,9 @@ d
 
 Two thoughts:
 
-1. What fraction of the people living in each state were born there?
+1. What fraction of the people living in each state were born in that same state?
 
-2. What fraction of the people living in each state were foreign-born?
+2. What fraction of the people living in each state were foreign-born, that is, outside the US?
 
 1:
 ```{r}
@@ -571,4 +571,140 @@ This is a common layout for data in one-way ANOVA: there are 12 observations, fo
 more problems needed
 
 
-## Next, stringr, forcats, purrr
+## `purrr`, `map` and list-columns
+
+Let's create a data frame with the numbers 1 through 6, and then find the square roots of each of those:
+
+```{r}
+tibble(x=1:6) %>% mutate(y=sqrt(x))
+```
+
+This works because `sqrt` is "vectorized": you can feed it a vector of inputs and it will give you a vector of square roots.
+
+Here is another, weirder, way:
+
+```{r}
+tibble(x=1:6) %>% mutate(y=map_dbl(x, ~sqrt(.)))
+```
+
+This says "for each thing in `x`, calculate the square root of *it*". This takes each thing in `x` one at a time, so it works even for functions that are not vectorized.
+
+Another one, even weirder:
+
+Students are not recommended to carry more than 10% of their body weight in their backpacks. A study at Cal Poly measured some male and female students, their weights, and the weights of the backpacks they were carrying:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/Backpack.csv"
+backpacks=read_csv(my_url)
+backpacks
+```
+
+To test whether males and females are adhering to the recommendation, *separately* test whether the male and female mean `Ratio`s are less than 0.10, using one-sample $t$-tests.
+
+Two ways:
+
+1. use `filter` to make a data frame of only the females, test the mean, then repeat for the males.
+
+2. Split-apply-combine: do it all in one dataframe.
+
+```{r}
+backpacks %>% nest(-Sex)
+```
+
+We appear to have lost all our data! But those things in the `data` column are actually data frames, within a data frame! They are all the rest of the data, just for females (the first one), and just for males (the second one). This is like what we would have done with `filter`, only tidier. The `data` column is called a "list-column".
+
+Now, "for each data frame in `data`, run a t-test that the mean ratio is 0.10, against the alternative that the mean is *less* than 0.10".
+
+If we were doing it for all the data together, it would look like this:
+
+```{r}
+backpacks.1=with(backpacks,t.test(Ratio,mu=0.10,alternative="less"))
+backpacks.1
+```
+
+(the "with" says "get `Ratio` from data frame `backpacks`).
+
+But we want to do it for each `Sex`. This is how:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10,alternative="less"))))
+```
+
+We have gained another list-column, one that holds all the output for our two t-tests. But we only want to see the P-values. A little digging reveals that this is the thing hiding in the `t.test` output called `p.value`:
+
+```{r}
+names(backpacks.1)
+```
+
+```{r}
+backpacks.1$p.value
+```
+
+
+so:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10,alternative="less")))) %>% 
+  mutate(p_value=map_dbl(t_test, "p.value"))
+```
+
+Both P-values are less than 0.05, so the mean weight ratio for both sexes is significantly less than 10%.
+
+How much less? We can look at 95% confidence intervals. But for those, we have to do the t-tests again, this time two-sided:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) 
+```
+
+and then pull out the thing called `conf.int`:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
+  mutate(ci=map(t_test, "conf.int"))
+```
+
+except that confidence intervals are *two* numbers, and we want to see them:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
+  mutate(ci=map(t_test, "conf.int")) %>% 
+  unnest(ci)
+```
+
+or even, to be fancy:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
+  mutate(ci=map(t_test, "conf.int")) %>% 
+  unnest(ci) %>% 
+  mutate(end=c("L", "U", "L", "U")) %>% 
+  spread(end, ci)
+```
+
+On average, we estimate female students to carry between 7% and 9% of their body weight in their backpacks, and males between 6.2% and 8.4%.
+
+### Practice with `map`
+
+1. an easy one
+
+2. (a) Make a data frame, using `tibble` or otherwise, that contains a column `mu` with three values, 10, 15 and 20.
+   (b) Make a new column x that contains 6 random normal values with mean `mu` and SD 1. That is, for each `mu`, run `rnorm` with inputs 6, "it" and 1. Display your result. Is it a list-column?
+   (c) Unnest your column `x`. Do you see something that looks like 6 random normal values with each mean?
+   
+3. (harder) For the Australian athletes data, find a 95% confidence interval for the mean height of athletes for each sport. (Just feed `Ht` into `t.test`; you don't need anything else.). Hint: a nest, a mutate-and-map to run the t-test, another mutate-and-map to get the CIs, an unnest to display them.
+
+```{r}
+athletes %>% nest(-Sport) %>% 
+  mutate(t_test=map(data, ~with(., t.test(Ht)))) %>% 
+  mutate(ci=map(t_test, "conf.int")) %>% 
+  unnest(ci)
+```
+
+   
+   
