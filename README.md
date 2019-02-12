@@ -1,4 +1,5 @@
 # tidy-intro
 
-code and odds and ends for the Introduction to Tidyverse workshop at UTSC, Feb 19, 2019 at 2:00pm.
-adding a line
+code and odds and ends for the Introduction to Tidyverse workshop at UTSC, Feb 26, 2019 at 2:00pm.
+
+this workshop is delayed due to a delay to a previous workshop.
