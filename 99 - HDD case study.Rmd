@@ -16,7 +16,7 @@ library(lubridate)
 Now read in your information, which is contained in the _data_ folder. _Note that I am suppressing the noisy output here._
 
 ```{r, message=FALSE, warning=FALSE}
-dat <- read_csv("data/5051-daily-1989-2018.csv")
+dat <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/5051-daily-1989-2018.csv")
 ```
 
 This dataset is a minimally edited export from the Environment and Climate Change Canada Historical Data Archive (http://climate.weather.gc.ca/). The data were collected at the "Toronto" station, which is located on the St. George campus, and has been in operation since 1840, the longest climatological record in Canada. Let's take a look at the data contained in the _.csv_ file. 
@@ -80,7 +80,7 @@ Let's unlock the power of the tidyverse for this one. Here we will:
 ```{r, message=FALSE, warning=FALSE}
 dat <- bind_rows(
   filter(dat, Date < "2003-01-01"),
-  read_csv("data/31688-daily-2001-2018.csv") %>%
+  read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/31688-daily-2001-2018.csv") %>%
     select(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
               MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`) %>%
     filter(Date >= "2003-01-01")
@@ -159,11 +159,11 @@ dat_win_sum <- mutate(dat_win_sum, Label = paste0(Winter - 1, "/", str_sub(Winte
 
 ggplot(dat_win_sum, aes(x = Winter, y = HDD)) +
   geom_point() +
-  geom_smooth() +
+  geom_smooth(method = loess) +
   ggtitle("Total winter heating degree days at Toronto, 1989\u20122018", subtitle = "Stations 5051 and 31688") +
   ylab("Heating degree days") +
-  scale_x_continuous(breaks = plot_data$Winter[seq(1, 29, 4)],
-                     labels = plot_data$Label[seq(1, 29, 4)])
+  scale_x_continuous(breaks = dat_win_sum$Winter[seq(1, 29, 4)],
+                     labels = dat_win_sum$Label[seq(1, 29, 4)])
 ```
 
 There we have it! Explicit, customized labels on our x-axis. 
@@ -173,7 +173,7 @@ There we have it! Explicit, customized labels on our x-axis.
 So, are HDDs a good proxy for energy demand data? Let's take a look at some real energy demand data for the "Toronto" zone. These daily demand data were adapted form the Independent Electricity System Operator (IESO) hourly zonal demand data: http://reports.ieso.ca/public/DemandZonal/. 
 
 ```{r, message=FALSE}
-demand <- read_csv("data/TO_energy_demand.csv")
+demand <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/TO_energy_demand.csv")
 demand
 ```
 
@@ -243,8 +243,8 @@ ggplot(dat_win_demand, aes(x = Winter)) +
   geom_line(aes(y = HDD, colour = "HDD")) + 
   geom_line(aes(y = Demand - 4200, colour = "Demand")) +
   scale_y_continuous(sec.axis = sec_axis(~. + 4200, name = "Energy demand (MW)")) +
-  scale_x_continuous(breaks = plot_data$Winter[seq(1, 29, 4)],
-                     labels = plot_data$Label[seq(1, 29, 4)]) +
+  scale_x_continuous(breaks = dat_win_demand$Winter[seq(1, 29, 4)],
+                     labels = dat_win_demand$Label[seq(1, 29, 4)]) +
     
   ylab("Heating degree days") + 
   ggtitle("Winter HDD and energy demand at Toronto, 1989\u20122018")
@@ -264,7 +264,7 @@ Finally, we can plot these variables, one against the other.
 ```{r}
 ggplot(dat_win_demand, aes(x = HDD, y = Demand)) +
   geom_point() +
-  geom_smooth() +
+  geom_smooth(method = lm) +
   ggtitle("Wintertime Heating degree days and energy demand in Toronto",
           subtitle = "Winter 1989/90\u20122017/18") +
   ylab("Average energy demand (MW)") +
