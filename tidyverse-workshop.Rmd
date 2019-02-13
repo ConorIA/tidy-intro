@@ -1,0 +1,710 @@
+---
+title: "Tidyverse Intro"
+output: html_notebook
+---
+
+## Packages
+
+```{r}
+library(tidyverse)
+```
+
+description of what Tidyverse contains
+per Conor
+
+## What we look at today
+
+1. `readr` for reading in data from files
+2. `ggplot2` for making graphs
+3. `dplyr` for extracting things from and summarizing data frames
+4. `tidyr` for reorganizing data frames
+5. `forcats` for organizing factors (categorical variables)
+6. `lubridate` for dates and times
+7. `purrr` for "for-each" in a data frame, and "split/apply/combine"
+
+and whatever else I missed
+
+and later we look at a case study in which some of these tools are brought together.
+
+We will intersperse time for you to practice these ideas.
+
+## To install the Tidyverse
+
+```{r, eval=F}
+install.packages("tidyverse")
+```
+
+May take some time because it installs a lot of packages.
+
+## Reading in data
+
+To do anything with data, we have to get the data in the first place, usually from a data file. Package `readr` has functions beginning `read_` for doing this, according to form of input.
+
+Examples:
+
+- data from a spreadsheet: save spreadsheet as .csv, read in using `read_csv`
+- data in a text file, separated by single space (or single anything): `read_delim`
+- data in text file, lined up in columns: `read_table`
+
+All of these can read from URLs, or from files on your computer. 
+
+Reading from URL: set up the URL first
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/d29/Pizza.csv"
+Pizza=read_csv(my_url)
+```
+
+Tells you what it read (compare with what you were expecting). Then look at data frame:
+
+```{r}
+Pizza
+```
+
+The `readr` functions return a `tibble` which by default displays only the first ten lines (click Next to see more).
+
+or maybe this way (applies to any data frame):
+
+```{r}
+glimpse(Pizza)
+```
+
+Space-delimited:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/baseball.txt"
+baseball=read_delim(my_url, " ")
+```
+
+```{r}
+baseball
+```
+
+`read_delim` reads files delimited by any single character, not just a space.
+
+Aligned by columns:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/caribou.txt"
+denali=read_table(my_url)
+```
+
+```{r}
+denali
+```
+
+To find files on your computer, you can use this idea:
+
+```{r, eval=F}
+f=file.choose()
+```
+
+navigating to the file you want. The value saved in `f` can be used as a filename in a `readr` function, thus:
+
+```{r}
+f
+thing=read_delim(f, " ")
+```
+
+```{r}
+thing
+```
+
+`readr` reads text in as text, not as factors (that you might be used to from `read.table` and friends). Usually it is fine to have categorical variables as text rather than factors, but occasionally it matters (see `forcats` later).
+
+### Practice at reading in data
+
+1. Read the .csv file at `http://www.utsc.utoronto.ca/~butler/c32/coasters.csv` into a dataframe and display it. (Copy and paste the URL.)
+2. Read in the space-delimited text file at `http://www.utsc.utoronto.ca/~butler/c32/coffee.txt` into a dataframe and display it.
+3. Find a .csv file on your own computer and read that into a dataframe. If you don't have one, find a spreadsheet, save it as a .csv first and read that in. You might like to use `file.choose` to find it.
+
+## Making graphs
+
+`ggplot` is the function for making any graphs at all. The syntax looks odd at first, but it has to include "what to plot" and "how to plot it".
+
+The roller coasters data from the previous exercise looks like this:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/coasters.csv"
+coasters=read_csv(my_url)
+coasters
+```
+
+For each of the roller coasters, the drop (in feet, from start to finish) and the duration of the ride (in seconds) are recorded. These are two quantitative variables (measured, not categorized), so a scatterplot would be a way to look for any relationship between them. A scatterplot has an x (drop, here) and a y (duration), so a scatterplot goes like this:
+
+```{r}
+ggplot(coasters, aes(x=drop, y=duration))+geom_point()
+```
+
+Extra: label the points by which rollercoaster they are thus:
+
+```{r}
+library(ggrepel)
+ggplot(coasters, aes(x=drop, y=duration, label=coaster_name))+geom_point()+geom_text_repel()
+```
+
+Compare the coffee cups, thus:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/coffee.txt"
+coffee=read_delim(my_url, " ")
+coffee
+```
+
+This has one quantitative variable `tempdiff` and one categorical variable `cup`, for which a good plot is a side-by-side boxplot. The groups in a boxplot go left to right (in `x` direction) and the quantitative variable goes up and down (`y`), so:
+
+```{r}
+ggplot(coffee, aes(x=cup, y=tempdiff))+geom_boxplot()
+```
+
+Here's what graphs you can draw when:
+
+```{r}
+graphs=read_table("graphs.txt")
+graphs
+```
+
+If you have more variables than this, you can use "facets" (subgraphs) to deal with those.
+
+For examples, I have some data on Australian athletes, thus:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/ais.txt"
+athletes=read_tsv(my_url)
+athletes
+```
+
+Examples:
+
+histogram of BMI:
+
+```{r}
+ggplot(athletes, aes(x=BMI))+geom_histogram()
+```
+
+Too many bins. Specify how many to use with `bins`, eg:
+
+```{r}
+ggplot(athletes, aes(x=BMI))+geom_histogram(bins=10)
+```
+
+How many people play each sport, by gender?
+
+```{r}
+ggplot(athletes,aes(x=Sport,fill=Sex))+
+geom_bar(position="dodge")
+```
+
+Height and weight by gender:
+
+```{r}
+ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()
+```
+
+Or add regression lines for each sex thus:
+
+```{r}
+ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()+
+  geom_smooth(method="lm")
+```
+
+
+height vs weight for each gender and each sport?
+
+*Four* variables, two categorical. Use one of the categorical variables to make facets:
+
+```{r}
+ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()+facet_wrap(~Sport)
+```
+
+These have the same scales for height and weight in each facet.
+
+BMI vs sport and gender, two ways:
+
+(a) grouped boxplots
+
+```{r}
+ggplot(athletes,aes(x=Sport,y=BMI,colour=Sex))+geom_boxplot()
+```
+
+(b) facetted by sport
+
+```{r}
+ggplot(athletes, aes(x=Sex, y=BMI))+geom_boxplot()+facet_wrap(~Sport)
+```
+
+### Practice drawing graphs yourself
+
+1. Read in the Australian athletes data set yourself. (Copy my code; the data values are separated by *tabs*, which we didn't see before.)
+
+2. Reproduce one of my graphs, for example a boxplot or scatterplot. Or try a bar chart (`geom_bar`).
+
+3. Make a graph of one of the types shown here, but with different variables.
+
+4. What do you think would be an interesting graph for this data set? Use `ggplot` to draw it.
+
+
+## Summarizing data
+
+We often want to summarize data, eg. to calculate means or to compare groups. The Tidyverse way to do this uses two tools from `dplyr`, `summarize` and `group_by`.
+
+Take the coffee data: 
+
+```{r}
+coffee
+```
+
+
+what is the mean and SD of temperature difference, and how many measurements were there altogether?
+
+```{r}
+coffee %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff),n=n())
+```
+
+The symbol `%>%` is called the **pipe**. I read it as "and then": "take `coffee`, and then summarize it as shown". Keyboard shortcut: control-shift-M.
+
+The thing on the left side of the pipe is a dataframe ("tibble"), and the thing on the right side of the pipe uses that dataframe as input, so that the column `tempdiff` comes from dataframe `coffee`.
+
+You can have long chains of pipes ("pipelines"). The dataframe coming out of each stage is used as (unnamed) input to the next stage.
+
+What we really wanted for the coffee data was to see how the types of cup compare in terms of temperature difference. That is done like this:
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff),n=n()) 
+```
+
+The Nissan cups have a smaller average temperature loss and are also less variable (more consistent).
+
+Since this output is a dataframe you can even pipe it into a plot:
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff),n=n()) %>% 
+  ggplot(aes(x=cup, y=temp_mean))+geom_point()
+```
+
+
+You can calculate other statistics, any that R and `dplyr` between them know about:
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(med=mean(tempdiff), Q1=quantile(tempdiff, 0.25), Q3=quantile(tempdiff, 0.75), iqr=IQR(tempdiff))
+```
+
+A shortcut: `count` counts many observations there are in each group defined by a categorical variable:
+
+```{r}
+coffee %>% count(cup)
+```
+
+This is short for
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(n=n())
+```
+
+
+### Practice summarizing data
+
+1. Grab the baseball data if you don't already have it:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/baseball.txt"
+baseball=read_delim(my_url, " ")
+baseball
+```
+
+2. For the baseball data, find the mean and SD of the number of runs.
+
+3. Find the mean and SD of the number of runs for each league. How do the results compare? 
+
+
+## Handling data frames: choosing rows and columns, sorting, creating new columns
+
+Australian athletes again:
+
+```{r}
+athletes
+```
+
+
+To choose columns of a dataframe, use `select`, eg:
+
+```{r}
+athletes %>% select(BMI)
+```
+
+```{r}
+athletes %>% select(Sport, BMI)
+```
+
+This one is called a "select-helper":
+
+```{r}
+athletes %>% select(starts_with("S"))
+```
+There is also `ends_with`.
+
+```{r}
+athletes %>% select(contains("c"))
+```
+
+```{r}
+athletes %>% select(Sex:RCC)
+```
+
+To select *rows*, use `filter` with a condition that has to be `TRUE` for the rows you want:
+
+```{r}
+athletes %>% filter(Sport=="Tennis")
+```
+
+```{r}
+athletes %>% filter(BMI>30)
+```
+
+Combine:
+
+```{r}
+athletes %>% select(Sex, Sport, BMI) %>% filter(BMI>30)
+```
+
+You can even `filter` by something that isn't shown at the end, as long as you filter first:
+
+```{r}
+athletes %>% filter(BMI>30) %>% select(Sex, Sport, Wt)
+```
+
+Sort using `arrange`:
+
+```{r}
+athletes %>% arrange(Wt) %>% select(Sex, Sport, Wt)
+```
+
+In descending order:
+
+```{r}
+athletes %>% arrange(desc(BMI))
+```
+
+Using a second variable to break ties:
+
+```{r}
+athletes %>% arrange(Ferr, BMI)
+```
+
+To create a new column, use `mutate`. For example, these weights are in kg, with one kg being 2.2 lbs:
+
+```{r}
+athletes %>% mutate(wt_lb=Wt*2.2) %>% select(Wt, wt_lb)
+```
+
+You can do several mutates at once, even splitting lines:
+
+```{r}
+athletes %>% mutate(
+  wt_lb=Wt*2.2,
+  ht_in=Ht/2.54
+) %>% select(starts_with("wt"),starts_with("ht"))
+```
+
+
+### Practice at handling data frames
+
+1. In the athletes data frame, choose three columns and display only those.
+
+2. Display all the athletes that are taller than 190 (cm). (column is called `Ht`.) 
+
+3. Find all the athletes taller than 190 cm, and count how many of them are male and how many female. (Hint: sequence of pipes.)
+
+4. Display the athletes sorted in descending order by height `Ht`. What sport do most of the tallest athletes play?
+
+5. Create a new column that is each athlete's height in feet (there are 30.5 centimetres in a foot), and display both the original height and the new one (bonus: without naming the columns explicitly).
+
+
+## Tidying untidy data
+
+Tidy data:
+
+- each observation in one row
+- each variable in one column
+
+For example, weights of 27 rats at different times:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/d29/ratweight.csv"
+weights=read_csv(my_url)
+weights
+```
+
+Column `drug` is tidy. But the five columns `Time0` through `Time4` are all measurements of the same thing (weight) at different times, and there are five observations in each row. So if we can make a column of weights and a column of times, labelled by the right rat, we should be good.
+
+This is what `gather` does:
+
+```{r}
+weights %>% gather(time, weight, starts_with("Time")) -> weights.tidy
+weights.tidy
+```
+
+There were 27 rats, each measured at 5 times, so we have this many observations:
+
+```{r}
+27*5
+```
+
+In gather:
+- what makes the columns (to be gathered up) different
+- what makes them the same
+- the columns to gather (eg. with a select-helper)
+
+Now eg. we can plot each rat's weight over time:
+
+```{r}
+ggplot(weights.tidy, aes(x=time, y=weight, group=rat))+geom_point()+geom_line()
+```
+
+or even coloured by which drug they were on:
+
+```{r}
+ggplot(weights.tidy, aes(x=time, y=weight, group=rat, colour=drug))+geom_point()+geom_line()
+```
+
+This is called a "spaghetti plot". This one says that thiouracil inhibits growth but thyroxin has little effect vs. control.
+
+(Imagine drawing the graph without tidying the data!)
+
+
+Now look at this one:
+
+```{r}
+seps = read_csv("http://www.mm-c.me/mdsi/hospitals93to98.csv")
+seps
+```
+
+These are numbers of patient days and "separations" for hospital admissions for different reasons during different financial years. First we need to gather up the years (I'll call "value" what they have in common):
+
+```{r}
+seps %>% gather(year, value, starts_with("FY"))
+```
+
+But now `value` encodes two different things: patient days and separations. This data frame is actually *too* long, and needs widening out. `spread` does the opposite of `gather`: we want a column of patient days and a column of separations for each year and reason:
+
+```{r}
+seps %>% gather(year, value, starts_with("FY")) %>% 
+  spread(Field, value)
+```
+
+Now we have something we can work with.
+
+Let's look at something different:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/d29/usa-1850-by-state.csv"
+usa1850=read_csv(my_url)
+usa1850
+```
+
+In 1850, for each of the (then) states of the US, how many people were born there, and how many were born elsewhere, and if so, where? Eg. there were 91 people currently living in Alabama who were born in Arkansas, and 33 who were born in Austria. Can we tidy this up?
+
+```{r}
+usa1850 %>% gather(birthplace, freq, -`State Name`)
+```
+
+The birthplace column encodes two things: were they born in the US ("native") or elsewhere ("foreign"), and where?
+
+```{r}
+usa1850 %>% gather(birthplace, freq, -`State Name`) %>% 
+  separate(birthplace, into=c("was_usa", "where_born"), sep=": ") -> d
+d
+```
+
+Two thoughts:
+
+1. What fraction of the people living in each state were born in that same state?
+
+2. What fraction of the people living in each state were foreign-born, that is, outside the US?
+
+1:
+```{r}
+d %>% mutate(born_there=(`State Name`==where_born)) %>% 
+  group_by(`State Name`) %>% count(born_there, wt=freq) %>% 
+  mutate(proportion=n/sum(n)) %>% 
+  filter(born_there) %>% arrange(desc(proportion)) -> d1
+d1
+```
+
+2:
+
+```{r}
+d %>% group_by(`State Name`) %>% count(was_usa, wt=freq) %>% 
+  mutate(proportion=n/sum(n)) %>% filter(was_usa=="Native-born") %>% 
+  arrange(desc(proportion)) -> d2
+d2
+```
+
+```{r}
+d1 %>% left_join(d2, by=c("State Name"="State Name")) %>% 
+  select(res=`State Name`, in_state=proportion.x, in_us=proportion.y) %>% 
+  ggplot(aes(x=in_state, y=in_us, label=res)) + geom_point() + geom_text_repel()
+```
+
+
+
+
+### Practice tidying data
+
+1. Run this code to get an untidy data frame:
+
+```{r}
+d=tribble(
+  ~trt1, ~trt2, ~control,
+  10, 13, 8,
+  11, 12, 7,
+  12, 12, 7,
+  11, 11, 8
+)
+d
+```
+
+This is a common layout for data in one-way ANOVA: there are 12 observations, four for each of two actual treatments and a control. Make a tidy data frame, bearing in mind that we have twelve measurements of yield, four for each of the three treatments. Hint: the select-helper `everything()` can be used to gather up all the columns.  Check that your resulting tidy data frame has the right number of rows.
+
+
+
+more problems needed
+
+
+## `purrr`, `map` and list-columns
+
+Let's create a data frame with the numbers 1 through 6, and then find the square roots of each of those:
+
+```{r}
+tibble(x=1:6) %>% mutate(y=sqrt(x))
+```
+
+This works because `sqrt` is "vectorized": you can feed it a vector of inputs and it will give you a vector of square roots.
+
+Here is another, weirder, way:
+
+```{r}
+tibble(x=1:6) %>% mutate(y=map_dbl(x, ~sqrt(.)))
+```
+
+This says "for each thing in `x`, calculate the square root of *it*". This takes each thing in `x` one at a time, so it works even for functions that are not vectorized.
+
+Another one, even weirder:
+
+Students are not recommended to carry more than 10% of their body weight in their backpacks. A study at Cal Poly measured some male and female students, their weights, and the weights of the backpacks they were carrying:
+
+```{r}
+my_url="http://www.utsc.utoronto.ca/~butler/c32/Backpack.csv"
+backpacks=read_csv(my_url)
+backpacks
+```
+
+To test whether males and females are adhering to the recommendation, *separately* test whether the male and female mean `Ratio`s are less than 0.10, using one-sample $t$-tests.
+
+Two ways:
+
+1. use `filter` to make a data frame of only the females, test the mean, then repeat for the males.
+
+2. Split-apply-combine: do it all in one dataframe.
+
+```{r}
+backpacks %>% nest(-Sex)
+```
+
+We appear to have lost all our data! But those things in the `data` column are actually data frames, within a data frame! They are all the rest of the data, just for females (the first one), and just for males (the second one). This is like what we would have done with `filter`, only tidier. The `data` column is called a "list-column".
+
+Now, "for each data frame in `data`, run a t-test that the mean ratio is 0.10, against the alternative that the mean is *less* than 0.10".
+
+If we were doing it for all the data together, it would look like this:
+
+```{r}
+backpacks.1=with(backpacks,t.test(Ratio,mu=0.10,alternative="less"))
+backpacks.1
+```
+
+(the "with" says "get `Ratio` from data frame `backpacks`).
+
+But we want to do it for each `Sex`. This is how:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10,alternative="less"))))
+```
+
+We have gained another list-column, one that holds all the output for our two t-tests. But we only want to see the P-values. A little digging reveals that this is the thing hiding in the `t.test` output called `p.value`:
+
+```{r}
+names(backpacks.1)
+```
+
+```{r}
+backpacks.1$p.value
+```
+
+
+so:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10,alternative="less")))) %>% 
+  mutate(p_value=map_dbl(t_test, "p.value"))
+```
+
+Both P-values are less than 0.05, so the mean weight ratio for both sexes is significantly less than 10%.
+
+How much less? We can look at 95% confidence intervals. But for those, we have to do the t-tests again, this time two-sided:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) 
+```
+
+and then pull out the thing called `conf.int`:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
+  mutate(ci=map(t_test, "conf.int"))
+```
+
+except that confidence intervals are *two* numbers, and we want to see them:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
+  mutate(ci=map(t_test, "conf.int")) %>% 
+  unnest(ci)
+```
+
+or even, to be fancy:
+
+```{r}
+backpacks %>% nest(-Sex) %>%
+  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
+  mutate(ci=map(t_test, "conf.int")) %>% 
+  unnest(ci) %>% 
+  mutate(end=c("L", "U", "L", "U")) %>% 
+  spread(end, ci)
+```
+
+On average, we estimate female students to carry between 7% and 9% of their body weight in their backpacks, and males between 6.2% and 8.4%.
+
+### Practice with `map`
+
+1. an easy one
+
+2. (a) Make a data frame, using `tibble` or otherwise, that contains a column `mu` with three values, 10, 15 and 20.
+   (b) Make a new column x that contains 6 random normal values with mean `mu` and SD 1. That is, for each `mu`, run `rnorm` with inputs 6, "it" and 1. Display your result. Is it a list-column?
+   (c) Unnest your column `x`. Do you see something that looks like 6 random normal values with each mean?
+   
+3. (harder) For the Australian athletes data, find a 95% confidence interval for the mean height of athletes for each sport. (Just feed `Ht` into `t.test`; you don't need anything else.). Hint: a nest, a mutate-and-map to run the t-test, another mutate-and-map to get the CIs, an unnest to display them.
+
+```{r}
+athletes %>% nest(-Sport) %>% 
+  mutate(t_test=map(data, ~with(., t.test(Ht)))) %>% 
+  mutate(ci=map(t_test, "conf.int")) %>% 
+  unnest(ci)
+```
+
+   
+   
