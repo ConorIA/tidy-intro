@@ -25,12 +25,31 @@ This dataset is a minimally edited export from the Environment and Climate Chang
 colnames(dat)
 ```
 
+xxx Ken: or
+
+```{r}
+dat %>% glimpse()
+```
+
+xxx
+
 By golly those column names are verbose! In R, including in the tidyverse, we have to enclose names that contain spaces in quotation marks ("") or backticks (``). This is a drag! Let's rename some of these columns, to make them easier to type. 
 
 ```{r}
 dat <- rename(dat, Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
               MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`)
 ```
+
+xxx Ken The kind of syntax I like is to pipe the data frame in, thus:
+
+```{r, eval=F}
+dat %>% rename(Date=..., ...) -> dat
+```
+
+I know you like the left-arrow at the beginning, which I'm fine with, but I don't like eg `rename` or `filter` sometimes having a data frame as the first argument and sometimes not. I think that's confusing. 
+This happens much of the way through, and *I* think it ought to be changed to do it the way I did it.
+
+xxx
 
 Now you can check the column names again.
 
@@ -114,6 +133,18 @@ Let's take a look at the first three and last three rows in our table. Notice th
 dat_win[c(1:3, nrow(dat_win) - 2:0),]
 ```
 
+xxx Ken: ouch! How about these two options below:
+
+```{r}
+dat_win %>% head(3)
+```
+
+```{r}
+dat_win %>% tail(3)
+```
+
+xxx
+
 In the winter, most energy demand is related to space heating, so heating degree days are useful to us. Heating degree days are defined as the degrees of heating (in °C) required to bring the daily mean temperature (`MeanTemp`) up to a base temperature of 18°C. As an example, if `MeanTemp` is $-6.3$°C: 
 
 $$
@@ -121,6 +152,31 @@ $$
 \textrm{HDD} = 24.3
 $$
 HDDs cannot be negative, so if `MeanTemp` is greater than 18°C, the HDDs for that day are 0. Let's add a new column to our data frame. For each row (`rowwise()`), we will get the greater of 0 and `18 - MeanTemp`.
+
+xxx Ken I'm not sure you need the `rowwise`. If you take it out and use `pmax` (parallel max) instead, it should work fine:
+
+```{r}
+dat_win %>% select(Winter, MeanTemp) %>% 
+  mutate(HDD=pmax(0, 18 - MeanTemp, na.rm = TRUE))
+```
+
+Another way is `ifelse`, or `case_when` that you use later:
+
+```{r}
+dat_win %>% select(Winter, MeanTemp) %>% 
+  mutate(HDD = ifelse(MeanTemp>=18, 0, 18-MeanTemp))
+```
+
+```{r}
+dat_win %>% select(Winter, MeanTemp) %>% 
+  mutate(HDD = case_when(
+    MeanTemp>=18 ~ 0,
+    TRUE         ~ 18-MeanTemp))
+```
+
+I think one of these makes the logic clearer to the audience.
+
+xxx
 
 ```{r}
 dat_win <- select(dat_win, Winter, MeanTemp) %>%
@@ -137,6 +193,8 @@ dat_win_sum <- dat_win %>%
   summarize(MeanTemp = mean(MeanTemp, na.rm = TRUE), HDD = sum(HDD), n = n())
 ```
 
+xxx Ken: "grouping rowwise data strips rowwise nature" is a hint to not use `rowwise`, IMO. xxx
+
 As you may have noticed already, we have created some incomplete winters in our process. First, winter 1988/89, which is missing data for December 1988. Second, winter 2018/19, which only includes December 2018. We can remove these values by filtering to complete seasons, which contain 90 to 91 daily observations. Let's filter those rows out of the data and plot it.
 
 ```{r}
@@ -151,6 +209,9 @@ ggplot(dat_win_sum, aes(x = Winter, y = HDD)) +
 ```
 
 That plot looks pretty good, however, the x-axis could be made to be more clear. Let's do some very basic string manipulation using **stringr**. Here we will create a new column for the labels. Each label will be created by first subtracting 1 from each winter, adding a forward slash and then appending the last two digits of each winter, e.g. 1990 becomes 1989/90. 
+
+xxx Ken: to be more `stringr`, use `str_c` instead of `paste0` below. You don't need `library(stringr)` since that's loaded with the `tidyverse`.
+Also, the construction of the breaks and labels seems rather complex. xxx
 
 ```{r}
 library(stringr)
