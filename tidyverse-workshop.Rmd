@@ -691,13 +691,33 @@ On average, we estimate female students to carry between 7% and 9% of their body
 
 ### Practice with `map`
 
-1. an easy one
+1. The following function doubles its input and adds 1:
+
+```{r}
+dp1=function(x) {
+  2*x+1
+}
+```
+
+Here is a data frame that contains a column u with values 1 through 10:
+
+```{r}
+d=tibble(u=1:10)
+```
+
+Use `mutate` and `map_dbl` to create a new column `v` that takes each value of `u` and runs `dp1` on it.
+
+(This is unnecessary for this problem, but shows you how it works.)
 
 2. (a) Make a data frame, using `tibble` or otherwise, that contains a column `mu` with three values, 10, 15 and 20.
    (b) Make a new column x that contains 6 random normal values with mean `mu` and SD 1. That is, for each `mu`, run `rnorm` with inputs 6, "it" and 1. Display your result. Is it a list-column?
    (c) Unnest your column `x`. Do you see something that looks like 6 random normal values with each mean?
+
    
-3. (harder) For the Australian athletes data, find a 95% confidence interval for the mean height of athletes for each sport. (Just feed `Ht` into `t.test`; you don't need anything else.). Hint: a nest, a mutate-and-map to run the t-test, another mutate-and-map to get the CIs, an unnest to display them.
+   
+3. (harder) For the Australian athletes data, find a 95% confidence interval for the mean height of athletes for each sport. (Just feed `Ht` into `t.test`; you don't need anything else in there, but you will need a  `with` to say which data frame to get things from.). Hint: a nest, a mutate-and-map to run the t-test, another mutate-and-map to get the CIs, an unnest to display them.
+
+My solution:
 
 ```{r}
 athletes %>% nest(-Sport) %>% 
