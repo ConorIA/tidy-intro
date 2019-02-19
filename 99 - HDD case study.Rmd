@@ -22,39 +22,20 @@ dat <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/dat
 This dataset is a minimally edited export from the Environment and Climate Change Canada Historical Data Archive (http://climate.weather.gc.ca/). The data were collected at the "Toronto" station, which is located on the St. George campus, and has been in operation since 1840, the longest climatological record in Canada. Let's take a look at the data contained in the _.csv_ file. 
 
 ```{r}
-colnames(dat)
-```
-
-xxx Ken: or
-
-```{r}
 dat %>% glimpse()
 ```
-
-xxx
 
 By golly those column names are verbose! In R, including in the tidyverse, we have to enclose names that contain spaces in quotation marks ("") or backticks (``). This is a drag! Let's rename some of these columns, to make them easier to type. 
 
 ```{r}
-dat <- rename(dat, Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
-              MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`)
+dat <- dat %>% rename(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
+                      MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`)
 ```
-
-xxx Ken The kind of syntax I like is to pipe the data frame in, thus:
-
-```{r, eval=F}
-dat %>% rename(Date=..., ...) -> dat
-```
-
-I know you like the left-arrow at the beginning, which I'm fine with, but I don't like eg `rename` or `filter` sometimes having a data frame as the first argument and sometimes not. I think that's confusing. 
-This happens much of the way through, and *I* think it ought to be changed to do it the way I did it.
-
-xxx
 
 Now you can check the column names again.
 
 ```{r}
-colnames(dat)
+dat %>% glimpse()
 ```
 
 Much better!
@@ -64,7 +45,7 @@ Much better!
 While things like wind and snow might indirectly affect our energy use, for the purposes of our current study, they are not useful. Let's use the `dplyr::select()` function to whittle down out data frame to only those variables that are of interest to us. 
 
 ```{r}
-dat <- select(dat, Date, MaxTemp, MinTemp, MeanTemp)
+dat <- dat %>% select(Date, MaxTemp, MinTemp, MeanTemp)
 ```
 
 Now you can take a look at the first few rows by printing the table. Remember, since **readr** automatically reads table data to a tibble, we don't have to worry about using `head()`, because the printed rows are capped at 10 automatically. 
@@ -76,13 +57,14 @@ dat
 We have learned the difference between "wide" and "long" data frames, and have seen that narrow data frames are much more convenient to plot using **ggplot2** due to the facetting magic implemented by the package. Let's create a long data frame for our data. 
 
 ```{r}
-dat_long <- gather(dat, key = Variable, value = value, -"Date")
+dat_long <- dat %>% gather(key = Variable, value = value, -"Date")
 ```
 
 Great. Let's make a first plot for a quick visual confirmation that our data is complete and doesn't contain wildly incorrect observations.
 
 ```{r}
-ggplot(data = dat_long, aes(x = Date, y = value, colour = Variable)) + geom_line() +
+ggplot(dat_long, aes(x = Date, y = value, colour = Variable)) +
+  geom_line() +
   ggtitle("Daily Temperature at Toronto (5051), 1989\u20122018") +
   ylab("Temperature (\u00B0C)")
 ```
@@ -98,10 +80,10 @@ Let's unlock the power of the tidyverse for this one. Here we will:
 
 ```{r, message=FALSE, warning=FALSE}
 dat <- bind_rows(
-  filter(dat, Date < "2003-01-01"),
+  dat %>% filter(Date < "2003-01-01"),
   read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/31688-daily-2001-2018.csv") %>%
     select(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
-              MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`) %>%
+           MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`) %>%
     filter(Date >= "2003-01-01")
 )
 ```
@@ -109,7 +91,7 @@ dat <- bind_rows(
 Let's re-do our "quick check" plot using the amalgamated dataset.
 
 ```{r}
-gather(dat, key = Variable, value = value, -"Date") %>%
+dat %>% gather(key = Variable, value = value, -"Date") %>%
   ggplot(aes(x = Date, y = value, colour = Variable)) +
     geom_line() +
     ggtitle("Daily temperature at Toronto (5051 and 31688), 1989\u20122018") +
@@ -123,17 +105,11 @@ Much better. On to our analysis.
 We want to look at _winter_ energy use in Toronto. A climatological winter is calculated from December to February (DJF). We need to be careful here. If we group our values by year, and the aggregate the values for the winter months, then we actually end up with JF...D, where the December that corresponds to the _following_ winter is grouped with the January and February of a given winter. Let's add a new column to our data frame. We'll add 1 to the "year" of all of our Decembers. This way, December 1989 will correctly be attributed to winter 1990 (or, more explicitly winter 1989/90).
 
 ```{r}
-dat_win <- filter(dat, month(Date) %in% c(1, 2, 12)) %>%
+dat_win <- dat %>% filter(month(Date) %in% c(1, 2, 12)) %>%
   mutate(Winter = ifelse(month(Date) == 12, year(Date) + 1, year(Date)))
 ```
 
 Let's take a look at the first three and last three rows in our table. Notice that January 1989 remains part of winter 1989, but December 2018 becomes part of winter 2019. 
-
-```{r}
-dat_win[c(1:3, nrow(dat_win) - 2:0),]
-```
-
-xxx Ken: ouch! How about these two options below:
 
 ```{r}
 dat_win %>% head(3)
@@ -143,63 +119,31 @@ dat_win %>% head(3)
 dat_win %>% tail(3)
 ```
 
-xxx
-
 In the winter, most energy demand is related to space heating, so heating degree days are useful to us. Heating degree days are defined as the degrees of heating (in °C) required to bring the daily mean temperature (`MeanTemp`) up to a base temperature of 18°C. As an example, if `MeanTemp` is $-6.3$°C: 
 
 $$
 \textrm{HDD} = 18 - (-6.3) \\
 \textrm{HDD} = 24.3
 $$
-HDDs cannot be negative, so if `MeanTemp` is greater than 18°C, the HDDs for that day are 0. Let's add a new column to our data frame. For each row (`rowwise()`), we will get the greater of 0 and `18 - MeanTemp`.
-
-xxx Ken I'm not sure you need the `rowwise`. If you take it out and use `pmax` (parallel max) instead, it should work fine:
+HDDs cannot be negative, so if `MeanTemp` is greater than 18°C, the HDDs for that day are 0. Let's add a new column to our data frame, which will be populated by `18 - MeanTemp` on days when `MeanTemp` is below 18.
 
 ```{r}
-dat_win %>% select(Winter, MeanTemp) %>% 
-  mutate(HDD=pmax(0, 18 - MeanTemp, na.rm = TRUE))
-```
-
-Another way is `ifelse`, or `case_when` that you use later:
-
-```{r}
-dat_win %>% select(Winter, MeanTemp) %>% 
-  mutate(HDD = ifelse(MeanTemp>=18, 0, 18-MeanTemp))
-```
-
-```{r}
-dat_win %>% select(Winter, MeanTemp) %>% 
-  mutate(HDD = case_when(
-    MeanTemp>=18 ~ 0,
-    TRUE         ~ 18-MeanTemp))
-```
-
-I think one of these makes the logic clearer to the audience.
-
-xxx
-
-```{r}
-dat_win <- select(dat_win, Winter, MeanTemp) %>%
-  rowwise() %>%
-  mutate(HDD = max(0, 18 - MeanTemp, na.rm = TRUE))
+dat_win <- dat_win %>% select(Winter, MeanTemp) %>%
+  mutate(HDD = ifelse(MeanTemp >= 18, 0, 18 - MeanTemp))
 
 dat_win
 ```
 
 Great. Let's calculate the average value for each winter. Notice that I am adding a "number of observations" variable `n`. You'll see why in a minute. 
 ```{r}
-dat_win_sum <- dat_win %>%
-  group_by(Winter) %>%
+dat_win_sum <- dat_win %>% group_by(Winter) %>%
   summarize(MeanTemp = mean(MeanTemp, na.rm = TRUE), HDD = sum(HDD), n = n())
 ```
-
-xxx Ken: "grouping rowwise data strips rowwise nature" is a hint to not use `rowwise`, IMO. xxx
 
 As you may have noticed already, we have created some incomplete winters in our process. First, winter 1988/89, which is missing data for December 1988. Second, winter 2018/19, which only includes December 2018. We can remove these values by filtering to complete seasons, which contain 90 to 91 daily observations. Let's filter those rows out of the data and plot it.
 
 ```{r}
-dat_win_sum <- filter(dat_win_sum, n >= 90) %>%
-  select(-n)
+dat_win_sum <- filter(dat_win_sum, n >= 90) %>% select(-n)
 
 ggplot(dat_win_sum, aes(x = Winter, y = HDD)) +
   geom_point() +
@@ -210,13 +154,8 @@ ggplot(dat_win_sum, aes(x = Winter, y = HDD)) +
 
 That plot looks pretty good, however, the x-axis could be made to be more clear. Let's do some very basic string manipulation using **stringr**. Here we will create a new column for the labels. Each label will be created by first subtracting 1 from each winter, adding a forward slash and then appending the last two digits of each winter, e.g. 1990 becomes 1989/90. 
 
-xxx Ken: to be more `stringr`, use `str_c` instead of `paste0` below. You don't need `library(stringr)` since that's loaded with the `tidyverse`.
-Also, the construction of the breaks and labels seems rather complex. xxx
-
 ```{r}
-library(stringr)
-
-dat_win_sum <- mutate(dat_win_sum, Label = paste0(Winter - 1, "/", str_sub(Winter, 3, 4)))
+dat_win_sum <- dat_win_sum %>% mutate(Label = str_c(Winter - 1, "/", str_sub(Winter, 3, 4)))
 
 ggplot(dat_win_sum, aes(x = Winter, y = HDD)) +
   geom_point() +
@@ -235,19 +174,19 @@ So, are HDDs a good proxy for energy demand data? Let's take a look at some real
 
 ```{r, message=FALSE}
 demand <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/TO_energy_demand.csv")
+
 demand
 ```
 
 As we can see from the column names, the data are grouped by date, and include three variables: daily minimum demand, daily maximum demand, and average daily demand. Let's convert our data from daily to seasonal. In this case, rather than directly creating a winter dataset, let's get some more practice using `dplyr::case_when()` to create a four-season dataset.
 
 ```{r}
-demand <- mutate(demand,
-                 Year = ifelse(month(Date) == 12, year(Date) + 1, year(Date)),
-                 Season = case_when(
-                   month(Date) %in% 3:5  ~ 2,
-                   month(Date) %in% 6:8  ~ 3,
-                   month(Date) %in% 9:11 ~ 4,
-                   TRUE ~ 1))
+demand <- demand %>% mutate(Year = ifelse(month(Date) == 12, year(Date) + 1, year(Date)),
+                            Season = case_when(
+                              month(Date) %in% 3:5  ~ 2,
+                              month(Date) %in% 6:8  ~ 3,
+                              month(Date) %in% 9:11 ~ 4,
+                              TRUE ~ 1))
 
 demand
 ```
@@ -255,7 +194,8 @@ demand
 Now that we have shifted the year for our Decembers, and have labelled each value with a season, we can group our data and calculate the total demand. Here I will first group by `Year` and `Season`, then add an additional grouping variable, the number of observations in each group `n`. Using those columns, I will calculate the mean and standard deviation of each of our three variables of interest. 
 
 ```{r}
-demand_agg <- group_by(demand, Year, Season) %>%
+demand_agg <- demand %>%
+  group_by(Year, Season) %>%
   group_by(n = n(), add = TRUE) %>%
   select(-Date) %>%
   summarize_all(funs(mean, sd)) %>%
@@ -267,7 +207,8 @@ demand_agg
 Great. Let's plot the mean seasonal demand against the year. We'll add error bars showing the standard error of the mean.  
 
 ```{r}
-win_demand <- filter(demand_agg, Season ==1) %>%
+win_demand <- demand_agg %>%
+  filter(Season ==1) %>%
   mutate(se = Mean_sd / sqrt(n))
 
 ggplot(win_demand, aes(x = Year, y = Mean_mean)) + geom_point() +
@@ -293,7 +234,7 @@ dat_win_demand
 You'll notice that missing values (`NA`) are inserted for the dates for which we do not have energy demand data. Before we move on, let's clean up our table a little. 
 
 ```{r}
-dat_win_demand <- select(dat_win_demand, Winter, Label, HDD, Demand = Mean_mean)
+dat_win_demand <- dat_win_demand %>% select(Winter, Label, HDD, Demand = Mean_mean)
 dat_win_demand
 ```
 
