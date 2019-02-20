@@ -22,7 +22,7 @@ dat <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/dat
 This dataset is a minimally edited export from the Environment and Climate Change Canada Historical Data Archive (http://climate.weather.gc.ca/). The data were collected at the "Toronto" station, which is located on the St. George campus, and has been in operation since 1840, the longest climatological record in Canada. Let's take a look at the data contained in the _.csv_ file. 
 
 ```{r}
-dat %>% glimpse()
+glimpse(dat)
 ```
 
 By golly those column names are verbose! In R, including in the tidyverse, we have to enclose names that contain spaces in quotation marks ("") or backticks (``). This is a drag! Let's rename some of these columns, to make them easier to type. 
@@ -35,7 +35,7 @@ dat <- dat %>% rename(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
 Now you can check the column names again.
 
 ```{r}
-dat %>% glimpse()
+glimpse(dat)
 ```
 
 Much better!
