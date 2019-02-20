@@ -7,26 +7,25 @@ output: html_notebook
 
 ```{r}
 library(tidyverse)
+library(ggrepel) # for labelling points on plots
 ```
 
-description of what Tidyverse contains
-per Conor
 
-## What we look at today
+## The Tidyverse contains:
 
 1. `readr` for reading in data from files
 2. `ggplot2` for making graphs
 3. `dplyr` for extracting things from and summarizing data frames
 4. `tidyr` for reorganizing data frames
 5. `forcats` for organizing factors (categorical variables)
-6. `lubridate` for dates and times
-7. `purrr` for "for-each" in a data frame, and "split/apply/combine"
+6. `stringr` for handling text
+7. `lubridate` for dates and times
+8. `purrr` for "for-each" in a data frame, and "split/apply/combine"
 
-and whatever else I missed
+I talk about some of these today (1-4 and maybe 8),
+and later Conor looks at a case study in which some of these tools are brought together.
 
-and later we look at a case study in which some of these tools are brought together.
-
-We will intersperse time for you to practice these ideas.
+We will intersperse time for you to practice the ideas.
 
 ## To install the Tidyverse
 
@@ -35,6 +34,13 @@ install.packages("tidyverse")
 ```
 
 May take some time because it installs a lot of packages.
+
+In the likely event that you don't have `ggrepel`, you will also need
+
+```{r, eval=F}
+install.packages("ggrepel")
+```
+
 
 ## Reading in data
 
@@ -68,6 +74,13 @@ or maybe this way (applies to any data frame):
 ```{r}
 glimpse(Pizza)
 ```
+
+or even this way:
+
+```{r}
+View(Pizza)
+```
+
 
 Space-delimited:
 
@@ -110,13 +123,15 @@ thing=read_delim(f, " ")
 thing
 ```
 
-`readr` reads text in as text, not as factors (that you might be used to from `read.table` and friends). Usually it is fine to have categorical variables as text rather than factors, but occasionally it matters (see `forcats` later).
+`readr` reads text in as text, not as factors (that you might be used to from `read.table` and friends). Usually it is fine to have categorical variables as text rather than factors, but occasionally it matters (see `forcats`).
 
 ### Practice at reading in data
 
 1. Read the .csv file at `http://www.utsc.utoronto.ca/~butler/c32/coasters.csv` into a dataframe and display it. (Copy and paste the URL.)
+
 2. Read in the space-delimited text file at `http://www.utsc.utoronto.ca/~butler/c32/coffee.txt` into a dataframe and display it.
-3. Find a .csv file on your own computer and read that into a dataframe. If you don't have one, find a spreadsheet, save it as a .csv first and read that in. You might like to use `file.choose` to find it.
+
+3. Find a .csv file on your own computer and read that into a dataframe. If you don't have one, find a spreadsheet (or make one), save it as a .csv, and read that in. You might like to use `file.choose` to find it.
 
 ## Making graphs
 
@@ -237,7 +252,7 @@ ggplot(athletes, aes(x=Sex, y=BMI))+geom_boxplot()+facet_wrap(~Sport)
 
 1. Read in the Australian athletes data set yourself. (Copy my code; the data values are separated by *tabs*, which we didn't see before.)
 
-2. Reproduce one of my graphs, for example a boxplot or scatterplot. Or try a bar chart (`geom_bar`).
+2. Reproduce one of my graphs, for example a boxplot or scatterplot. Or try a bar chart (`geom_bar`) for one categorical variable.
 
 3. Make a graph of one of the types shown here, but with different variables.
 
@@ -258,7 +273,7 @@ coffee
 what is the mean and SD of temperature difference, and how many measurements were there altogether?
 
 ```{r}
-coffee %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff),n=n())
+coffee %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff), n=n())
 ```
 
 The symbol `%>%` is called the **pipe**. I read it as "and then": "take `coffee`, and then summarize it as shown". Keyboard shortcut: control-shift-M.
