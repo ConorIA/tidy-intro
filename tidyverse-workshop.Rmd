@@ -5,12 +5,28 @@ output: html_notebook
 
 ## Packages
 
+The tidyverse is the name given to a diverse set of packages with a consistent "grammar". You have probably heard of some of them: **ggplot2**, **dplyr**, **readr**, to name a few. You can install _most_ of the tidyverse by installing the **tidyverse** package. We will also use the **ggrepel** package today. Run the following command to install these packages. This may take some time because it installs a lot of packages.
+
+```{r, eval=F}
+install.packages(c("tidyverse", "ggrepel"))
+```
+
+With the **tidyverse** package installed, load it with `library()`. The **tidyverse** package loads (attaches) eight related packages:
+
+1. **ggplot2**: for visualizing data
+2. **tibble**: for working with table data
+3. **tidyr**: for re-arranging and cleaning table data
+4. **readr**: for reading in a diverse array of data types
+5. **purrr**: for functional programming and mapping
+6. **dplyr**: a powerful tool for data chunking and analysis
+7. **stringr**: for working with character strings (e.g. words or codes)
+8. **forcats**: for working with factors (e.g. categorical data)
+
+You will see some output about function names that conflict with built-in functions. This is normal. 
+
 ```{r}
 library(tidyverse)
 ```
-
-description of what Tidyverse contains
-per Conor
 
 ## What we look at today
 
@@ -27,14 +43,6 @@ and whatever else I missed
 and later we look at a case study in which some of these tools are brought together.
 
 We will intersperse time for you to practice these ideas.
-
-## To install the Tidyverse
-
-```{r, eval=F}
-install.packages("tidyverse")
-```
-
-May take some time because it installs a lot of packages.
 
 ## Reading in data
 
