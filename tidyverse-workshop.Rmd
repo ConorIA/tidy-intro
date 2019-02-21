@@ -131,7 +131,7 @@ thing
 
 2. Read in the space-delimited text file at `http://www.utsc.utoronto.ca/~butler/c32/coffee.txt` into a dataframe and display it.
 
-3. Find a .csv file on your own computer and read that into a dataframe. If you don't have one, find a spreadsheet (or make one), save it as a .csv, and read that in. You might like to use `file.choose` to find it.
+3. Find a .csv file on your own computer and read that into a dataframe. If you don't have one, find a spreadsheet (or make one), save it as a .csv, and read that in. You might like to use `file.choose` to find it. (If you're working on rstudio.cloud, upload a .csv from your computer first.)
 
 ## Making graphs
 
