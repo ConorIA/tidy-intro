@@ -301,6 +301,14 @@ coffee %>% group_by(cup) %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(temp
   ggplot(aes(x=cup, y=temp_mean))+geom_point()
 ```
 
+or more interesting
+
+```{r}
+coffee %>% group_by(cup) %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff),n=n()) %>% 
+  ggplot(aes(x=cup, y=temp_mean, ymin=temp_mean-temp_sd, ymax=temp_mean+temp_sd))+
+  geom_point()+geom_linerange()
+```
+
 
 You can calculate other statistics, any that R and `dplyr` between them know about:
 
@@ -524,7 +532,7 @@ usa1850
 In 1850, for each of the (then) states of the US, how many people were born there, and how many were born elsewhere, and if so, where? Eg. there were 91 people currently living in Alabama who were born in Arkansas, and 33 who were born in Austria. Can we tidy this up?
 
 ```{r}
-usa1850 %>% gather(birthplace, freq, -`State Name`)
+usa1850 %>% gather(birthplace, freq, -`State Name`) 
 ```
 
 The birthplace column encodes two things: were they born in the US ("native") or elsewhere ("foreign"), and where?
@@ -553,8 +561,10 @@ d1
 2:
 
 ```{r}
-d %>% group_by(`State Name`) %>% count(was_usa, wt=freq) %>% 
-  mutate(proportion=n/sum(n)) %>% filter(was_usa=="Native-born") %>% 
+d %>% 
+  group_by(`State Name`) %>% count(was_usa, wt=freq) %>% 
+  mutate(proportion=n/sum(n)) %>% 
+  filter(was_usa=="Native-born") %>% 
   arrange(desc(proportion)) -> d2
 d2
 ```
@@ -586,8 +596,11 @@ d
 This is a common layout for data in one-way ANOVA: there are 12 observations, four for each of two actual treatments and a control. Make a tidy data frame, bearing in mind that we have twelve measurements of yield, four for each of the three treatments. Hint: the select-helper `everything()` can be used to gather up all the columns.  Check that your resulting tidy data frame has the right number of rows.
 
 
+**** break here ****
 
+Conor's case study
 
+time permitting, this:
 
 
 ## `purrr`, `map` and list-columns
@@ -637,7 +650,7 @@ Now, "for each data frame in `data`, run a t-test that the mean ratio is 0.10, a
 If we were doing it for all the data together, it would look like this:
 
 ```{r}
-backpacks.1=with(backpacks,t.test(Ratio,mu=0.10,alternative="less"))
+backpacks.1=with(backpacks, t.test(Ratio, mu=0.10, alternative="less"))
 backpacks.1
 ```
 
@@ -647,7 +660,7 @@ But we want to do it for each `Sex`. This is how:
 
 ```{r}
 backpacks %>% nest(-Sex) %>%
-  mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10,alternative="less"))))
+  mutate(t_test=map(data, ~with(., t.test(Ratio, mu=0.10, alternative="less"))))
 ```
 
 We have gained another list-column, one that holds all the output for our two t-tests. But we only want to see the P-values. A little digging reveals that this is the thing hiding in the `t.test` output called `p.value`:
@@ -706,7 +719,7 @@ backpacks %>% nest(-Sex) %>%
   spread(end, ci)
 ```
 
-On average, we estimate female students to carry between 7% and 9% of their body weight in their backpacks, and males between 6.2% and 8.4%.
+On average, we estimate female students to carry a mean of between 7% and 9% of their body weight in their backpacks, and males a mean of between 6.2% and 8.4%.
 
 ### Practice with `map`
 
@@ -726,7 +739,7 @@ d=tibble(u=1:10)
 
 Use `mutate` and `map_dbl` to create a new column `v` that takes each value of `u` and runs `dp1` on it.
 
-(This is unnecessary for this problem, but shows you how it works.)
+(This is unnecessary for this problem, since `dp1` uses only things that are vectorized, but shows you how it works.)
 
 2. (a) Make a data frame, using `tibble` or otherwise, that contains a column `mu` with three values, 10, 15 and 20.
    (b) Make a new column x that contains 6 random normal values with mean `mu` and SD 1. That is, for each `mu`, run `rnorm` with inputs 6, "it" and 1. Display your result. Is it a list-column?
@@ -745,5 +758,15 @@ athletes %>% nest(-Sport) %>%
   unnest(ci)
 ```
 
-   
+or, fancy:
+
+```{r}
+athletes %>% nest(-Sport) %>% 
+  mutate(t_test=map(data, ~with(., t.test(Ht)))) %>% 
+  mutate(ci=map(t_test, "conf.int")) %>% 
+  unnest(ci) %>% 
+  mutate(end=gl(2, 1, length=20, labels=c("L", "U"))) %>% 
+  spread(end, ci)
+```
+
    
