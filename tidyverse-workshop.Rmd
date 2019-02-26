@@ -419,7 +419,7 @@ You can do several mutates at once, even splitting lines:
 athletes %>% mutate(
   wt_lb=Wt*2.2,
   ht_in=Ht/2.54
-) %>% select(starts_with("wt"),starts_with("ht"))
+) %>% select(starts_with("wt"), starts_with("ht"))
 ```
 
 
@@ -584,7 +584,7 @@ This is a common layout for data in one-way ANOVA: there are 12 observations, fo
 
 
 
-more problems needed
+
 
 
 ## `purrr`, `map` and list-columns
