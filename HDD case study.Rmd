@@ -79,11 +79,12 @@ Let's unlock the power of the tidyverse for this one. Here we will:
 - append the new data frame to the original one using `dplyr::bind_rows()`
 
 ```{r, message=FALSE, warning=FALSE}
-dat <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/31688-daily-2001-2018.csv") %>%
+dat2 <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/31688-daily-2001-2018.csv") %>%
   select(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
          MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`) %>%
-  filter(Date >= "2003-01-01") %>% 
-  bind_rows(dat %>% filter(Date < "2003-01-01"), .)
+  filter(Date >= "2003-01-01")
+
+dat <- dat %>% filter(Date < "2003-01-01") %>% bind_rows(dat2)
 ```
 
 Let's re-do our "quick check" plot using the amalgamated dataset.
