@@ -204,17 +204,20 @@ Too many bins. Specify how many to use with `bins`, eg:
 ggplot(athletes, aes(x=BMI))+geom_histogram(bins=10)
 ```
 
+
+
 How many people play each sport, by gender?
 
 ```{r}
 ggplot(athletes,aes(x=Sport,fill=Sex))+
-geom_bar(position="dodge")
+  geom_bar(position="dodge")
 ```
+
 
 Height and weight by gender:
 
 ```{r}
-ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()
+ggplot(athletes,aes(x=Ht, y=Wt, colour=Sex))+geom_point()
 ```
 
 Or add regression lines for each sex thus:
