@@ -6,7 +6,7 @@ output:
 
 You have been asked by Toronto Hydro to perform a rudimentary study of winter energy demand due to heating in downtown Toronto. The period of study will be the 30-year period from 1989 to 2018. Energy demand data do not cover this period completely, so you will use temperature data as a proxy. 
 
-First, load the **tidyverse** package, along with **lubdridate**. 
+First, load the **tidyverse** package, along with **lubridate**.
 
 ```{r}
 library(tidyverse)
@@ -54,7 +54,7 @@ Now you can take a look at the first few rows by printing the table. Remember, s
 dat
 ```
 
-We have learned the difference between "wide" and "long" data frames, and have seen that narrow data frames are much more convenient to plot using **ggplot2** due to the facetting magic implemented by the package. Let's create a long data frame for our data. 
+We have learned the difference between "wide" and "long" data frames, and have seen that narrow data frames are much more convenient to plot using **ggplot2** due to the faceting magic implemented by the package. Let's create a long data frame for our data. 
 
 ```{r}
 dat_long <- dat %>% gather(key = Variable, value = value, -"Date")
@@ -69,7 +69,7 @@ ggplot(dat_long, aes(x = Date, y = value, colour = Variable)) +
   ylab("Temperature (\u00B0C)")
 ```
 
-Uhh ohh! Something doesn't look right! It seems that our data drops off a cliff sometime in the early 2000s. What did we do wrong? Sometime between 2002 and 2003, Environment Canada made some changes in their weather station network. Station 5051 continues to collect precipitation data (to date), however the temperature data are now collected at station 31688. These stations are co-located, so the change is little more than a shift in name and station code (although there is a brief period where the two stations overlap and the temperature values _do_ differ by a few tenths of a degree celcius on some observations, but we'll take for granted that these differences are inconsequential). 
+Uhh ohh! Something doesn't look right! It seems that our data drops off a cliff sometime in the early 2000s. What did we do wrong? Sometime between 2002 and 2003, Environment Canada made some changes in their weather station network. Station 5051 continues to collect precipitation data (to date), however the temperature data are now collected at station 31688. These stations are co-located, so the change is little more than a shift in name and station code (although there is a brief period where the two stations overlap and the temperature values _do_ differ by a few tenths of a degree Celsius on some observations, but we'll take for granted that these differences are inconsequential). 
 
 Let's unlock the power of the tidyverse for this one. Here we will:
 
@@ -79,13 +79,11 @@ Let's unlock the power of the tidyverse for this one. Here we will:
 - append the new data frame to the original one using `dplyr::bind_rows()`
 
 ```{r, message=FALSE, warning=FALSE}
-dat <- bind_rows(
-  dat %>% filter(Date < "2003-01-01"),
-  read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/31688-daily-2001-2018.csv") %>%
-    select(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
-           MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`) %>%
-    filter(Date >= "2003-01-01")
-)
+dat <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/31688-daily-2001-2018.csv") %>%
+  select(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
+         MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`) %>%
+  filter(Date >= "2003-01-01") %>% 
+  bind_rows(dat %>% filter(Date < "2003-01-01"), .)
 ```
 
 Let's re-do our "quick check" plot using the amalgamated dataset.
@@ -129,9 +127,7 @@ HDDs cannot be negative, so if `MeanTemp` is greater than 18°C, the HDDs for th
 
 ```{r}
 dat_win <- dat_win %>% select(Winter, MeanTemp) %>%
-  mutate(HDD = ifelse(MeanTemp >= 18, 0, 18 - MeanTemp))
-
-dat_win
+  mutate(HDD = ifelse(MeanTemp >= 18, 0, 18 - MeanTemp)) %>% print()
 ```
 
 Great. Let's calculate the average value for each winter. Notice that I am adding a "number of observations" variable `n`. You'll see why in a minute. 
@@ -143,7 +139,7 @@ dat_win_sum <- dat_win %>% group_by(Winter) %>%
 As you may have noticed already, we have created some incomplete winters in our process. First, winter 1988/89, which is missing data for December 1988. Second, winter 2018/19, which only includes December 2018. We can remove these values by filtering to complete seasons, which contain 90 to 91 daily observations. Let's filter those rows out of the data and plot it.
 
 ```{r}
-dat_win_sum <- filter(dat_win_sum, n >= 90) %>% select(-n)
+dat_win_sum <- dat_win_sum %>% filter(n >= 90) %>% select(-n)
 
 ggplot(dat_win_sum, aes(x = Winter, y = HDD)) +
   geom_point() +
@@ -173,9 +169,7 @@ There we have it! Explicit, customized labels on our x-axis.
 So, are HDDs a good proxy for energy demand data? Let's take a look at some real energy demand data for the "Toronto" zone. These daily demand data were adapted form the Independent Electricity System Operator (IESO) hourly zonal demand data: http://reports.ieso.ca/public/DemandZonal/. 
 
 ```{r, message=FALSE}
-demand <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/TO_energy_demand.csv")
-
-demand
+demand <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/TO_energy_demand.csv") %>% print()
 ```
 
 As we can see from the column names, the data are grouped by date, and include three variables: daily minimum demand, daily maximum demand, and average daily demand. Let's convert our data from daily to seasonal. In this case, rather than directly creating a winter dataset, let's get some more practice using `dplyr::case_when()` to create a four-season dataset.
@@ -186,9 +180,7 @@ demand <- demand %>% mutate(Year = ifelse(month(Date) == 12, year(Date) + 1, yea
                               month(Date) %in% 3:5  ~ 2,
                               month(Date) %in% 6:8  ~ 3,
                               month(Date) %in% 9:11 ~ 4,
-                              TRUE ~ 1))
-
-demand
+                              TRUE ~ 1)) %>% print()
 ```
 
 Now that we have shifted the year for our Decembers, and have labelled each value with a season, we can group our data and calculate the total demand. Here I will first group by `Year` and `Season`, then add an additional grouping variable, the number of observations in each group `n`. Using those columns, I will calculate the mean and standard deviation of each of our three variables of interest. 
@@ -198,10 +190,8 @@ demand_agg <- demand %>%
   group_by(Year, Season) %>%
   group_by(n = n(), add = TRUE) %>%
   select(-Date) %>%
-  summarize_all(funs(mean, sd)) %>%
-  filter(n >= 90)
-
-demand_agg
+  summarize_all(list(mean = mean, sd = sd)) %>%
+  filter(n >= 90) %>% print()
 ```
 
 Great. Let's plot the mean seasonal demand against the year. We'll add error bars showing the standard error of the mean.  
@@ -217,7 +207,7 @@ ggplot(win_demand, aes(x = Year, y = Mean_mean)) + geom_point() +
   ylab("Average energy demand (MW)")
 ```
 
-There are a couple of high-demand winters: 2014/15 and 2015/16. Those winters were characterized by very long periods of cold weather. It looks like energy demand may, indeed, be dependant on the weather. 
+There are a couple of high-demand winters: 2014/15 and 2015/16. Those winters were characterized by very long periods of cold weather. It looks like energy demand may, indeed, be dependent on the weather. 
 
 ***
 
@@ -226,19 +216,16 @@ Let's join our HDD table to our energy demand table. Note that in the HDD table,
 ```{r}
 dat_win_demand <- left_join(dat_win_sum,
                             win_demand,
-                            by = c("Winter" = "Year"))
-
-dat_win_demand
+                            by = c("Winter" = "Year")) %>% print()
 ```
 
 You'll notice that missing values (`NA`) are inserted for the dates for which we do not have energy demand data. Before we move on, let's clean up our table a little. 
 
 ```{r}
-dat_win_demand <- dat_win_demand %>% select(Winter, Label, HDD, Demand = Mean_mean)
-dat_win_demand
+dat_win_demand <- dat_win_demand %>% select(Winter, Label, HDD, Demand = Mean_mean) %>% print()
 ```
 
-Now let's visualize our data. First, let's try plotting both variables, using a secondary axis in **ggplot2**. Secondary axes in **ggplot2** are based on some transformation of the values of one or more series. Here we will take the demand data, and subtract 4200 from each observation. This will put the data in the same ball park as the HDD data. On the secondary axis, we will use a transformation to add 4200 to each of the tickmarks, so that the value is representative of the true energy demand data.
+Now let's visualize our data. First, let's try plotting both variables, using a secondary axis in **ggplot2**. Secondary axes in **ggplot2** are based on some transformation of the values of one or more series. Here we will take the demand data, and subtract 4200 from each observation. This will put the data in the same ball park as the HDD data. On the secondary axis, we will use a transformation to add 4200 to each of the tick marks, so that the value is representative of the true energy demand data.
 
 ```{r}
 ggplot(dat_win_demand, aes(x = Winter)) + 
@@ -289,3 +276,11 @@ Now that we have began to explore these data, complete the following exercises.
 4. Which variable shows a stronger relationship to energy demand: HDD or CDD?
 
 Feel free to ask your instructors for help during this exercise. 
+
+### Some formatting tips
+
+If you look at the HTML version of this R notebook, you may find some unsightly characters in the `glimpse()` output, as well as in the cell that loads the **tidyverse** package. This is because these functions use ANSI strings (a sort of text encoding) to output coloured or italic text on the console. These strings are not properly rendered in the HTML and will make your reports ugly. You can beautify them with the following options: 
+
+1. `options(crayon.enabled = FALSE)` : this will disable the ANSI strings all together
+2. `options(tidyverse.quiet = TRUE)` : this will completely suppress the **tidyverse** startup messages
+3. `library(lubridate, warn.conflicts = FALSE)` : this will suppress the conflict warnings when **lubridate loads**
