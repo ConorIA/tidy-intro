@@ -175,7 +175,8 @@ ggplot(coffee, aes(x=cup, y=tempdiff))+geom_boxplot()
 Here's what graphs you can draw when:
 
 ```{r}
-graphs=read_table("graphs.txt")
+my_url="https://raw.githubusercontent.com/ConorIA/tidy-intro/master/graphs.txt"
+graphs=read_table(my_url)
 graphs
 ```
 
