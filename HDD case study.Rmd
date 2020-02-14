@@ -42,7 +42,7 @@ Much better!
 
 ***
 
-While things like wind and snow might indirectly affect our energy use, for the purposes of our current study, they are not useful. Let's use the `dplyr::select()` function to whittle down out data frame to only those variables that are of interest to us. 
+While things like wind and snow might indirectly affect our energy use, for the purposes of our current study, they are not useful. Let's use the `dplyr::select()` function to whittle down our data frame to only those variables that are of interest to us. 
 
 ```{r}
 dat <- dat %>% select(Date, MaxTemp, MinTemp, MeanTemp)
@@ -57,13 +57,14 @@ dat
 We have learned the difference between "wide" and "long" data frames, and have seen that narrow data frames are much more convenient to plot using **ggplot2** due to the faceting magic implemented by the package. Let's create a long data frame for our data. 
 
 ```{r}
-dat_long <- dat %>% gather(key = Variable, value = value, -"Date")
+dat_long <- dat %>%
+  pivot_longer(cols = -Date, names_to = "Variable", values_to = "Value")
 ```
 
 Great. Let's make a first plot for a quick visual confirmation that our data is complete and doesn't contain wildly incorrect observations.
 
 ```{r}
-ggplot(dat_long, aes(x = Date, y = value, colour = Variable)) +
+ggplot(dat_long, aes(x = Date, y = Value, colour = Variable)) +
   geom_line() +
   ggtitle("Daily Temperature at Toronto (5051), 1989\u20122018") +
   ylab("Temperature (\u00B0C)")
@@ -90,8 +91,9 @@ dat <- dat %>% filter(Date < "2003-01-01") %>% bind_rows(dat2)
 Let's re-do our "quick check" plot using the amalgamated dataset.
 
 ```{r}
-dat %>% gather(key = Variable, value = value, -"Date") %>%
-  ggplot(aes(x = Date, y = value, colour = Variable)) +
+dat %>%
+  pivot_longer(cols = -Date, names_to = "Variable", values_to = "Value") %>%
+  ggplot(aes(x = Date, y = Value, colour = Variable)) +
     geom_line() +
     ggtitle("Daily temperature at Toronto (5051 and 31688), 1989\u20122018") +
     ylab("Temperature (\u00B0C)")
@@ -101,7 +103,7 @@ Much better. On to our analysis.
 
 ***
 
-We want to look at _winter_ energy use in Toronto. A climatological winter is calculated from December to February (DJF). We need to be careful here. If we group our values by year, and the aggregate the values for the winter months, then we actually end up with JF...D, where the December that corresponds to the _following_ winter is grouped with the January and February of a given winter. Let's add a new column to our data frame. We'll add 1 to the "year" of all of our Decembers. This way, December 1989 will correctly be attributed to winter 1990 (or, more explicitly winter 1989/90).
+We want to look at _winter_ energy use in Toronto. A climatological winter is calculated from December to February (DJF). We need to be careful here. If we group our values by year, and then aggregate the values for the winter months, then we actually end up with JF...D, where the December that corresponds to the _following_ winter is grouped with the January and February of a given winter. That's poor form! Let's add a new column to our data frame. We'll add 1 to the "year" of all of our Decembers. This way, December 1989 will correctly be attributed to winter 1990 (or, more explicitly winter 1989/90).
 
 ```{r}
 dat_win <- dat %>% filter(month(Date) %in% c(1, 2, 12)) %>%
@@ -132,12 +134,17 @@ dat_win <- dat_win %>% select(Winter, MeanTemp) %>%
 ```
 
 Great. Let's calculate the average value for each winter. Notice that I am adding a "number of observations" variable `n`. You'll see why in a minute. 
+
 ```{r}
 dat_win_sum <- dat_win %>% group_by(Winter) %>%
-  summarize(MeanTemp = mean(MeanTemp, na.rm = TRUE), HDD = sum(HDD), n = n())
+  summarize(MeanTemp = mean(MeanTemp, na.rm = TRUE),
+            HDD = mean(HDD, na.rm = TRUE),
+            n = n())
 ```
 
 As you may have noticed already, we have created some incomplete winters in our process. First, winter 1988/89, which is missing data for December 1988. Second, winter 2018/19, which only includes December 2018. We can remove these values by filtering to complete seasons, which contain 90 to 91 daily observations. Let's filter those rows out of the data and plot it.
+
+_Note: There are a few winters in my data set that are missing up to three daily HDD observations. We can probably assume that these values won't impact the average seasonal HDD value by very much, but a more advanced analysis may involve interpolating thesre missing values orsome other treatment._
 
 ```{r}
 dat_win_sum <- dat_win_sum %>% filter(n >= 90) %>% select(-n)
@@ -145,7 +152,7 @@ dat_win_sum <- dat_win_sum %>% filter(n >= 90) %>% select(-n)
 ggplot(dat_win_sum, aes(x = Winter, y = HDD)) +
   geom_point() +
   geom_smooth() +
-  ggtitle("Total daily heating degree days at Toronto, 1989\u20122018", subtitle = "Stations 5051 and 31688") +
+  ggtitle("Daily average winter heating degree days at Toronto, 1989\u20122018", subtitle = "Stations 5051 and 31688") +
   ylab("Heating degree days")
 ```
 
@@ -157,7 +164,7 @@ dat_win_sum <- dat_win_sum %>% mutate(Label = str_c(Winter - 1, "/", str_sub(Win
 ggplot(dat_win_sum, aes(x = Winter, y = HDD)) +
   geom_point() +
   geom_smooth(method = loess) +
-  ggtitle("Total winter heating degree days at Toronto, 1989\u20122018", subtitle = "Stations 5051 and 31688") +
+  ggtitle("Daily average winter heating degree days at Toronto, 1989\u20122018", subtitle = "Stations 5051 and 31688") +
   ylab("Heating degree days") +
   scale_x_continuous(breaks = dat_win_sum$Winter[seq(1, 29, 4)],
                      labels = dat_win_sum$Label[seq(1, 29, 4)])
@@ -226,24 +233,27 @@ You'll notice that missing values (`NA`) are inserted for the dates for which we
 dat_win_demand <- dat_win_demand %>% select(Winter, Label, HDD, Demand = Mean_mean) %>% print()
 ```
 
-Now let's visualize our data. First, let's try plotting both variables, using a secondary axis in **ggplot2**. Secondary axes in **ggplot2** are based on some transformation of the values of one or more series. Here we will take the demand data, and subtract 4200 from each observation. This will put the data in the same ball park as the HDD data. On the secondary axis, we will use a transformation to add 4200 to each of the tick marks, so that the value is representative of the true energy demand data.
+Now let's visualize our data. First, let's try plotting both variables, using a secondary axis in **ggplot2**. Secondary axes in **ggplot2** are based on some transformation of the values of one or more series. Here we will take the demand data, and divide each observation by 300. This will put the data in the same ball park as the HDD data. On the secondary axis, we will use a transformation to multiply each  tick mark by 300 so that the value is representative of the true energy demand data.
 
 ```{r}
 ggplot(dat_win_demand, aes(x = Winter)) + 
   geom_line(aes(y = HDD, colour = "HDD")) + 
-  geom_line(aes(y = Demand - 4200, colour = "Demand")) +
-  scale_y_continuous(sec.axis = sec_axis(~. + 4200, name = "Energy demand (MW)")) +
+  geom_line(aes(y = Demand / 300, colour = "Demand")) +
+  scale_y_continuous(sec.axis = sec_axis(~. * 300, name = "Energy demand (MW)")) +
   scale_x_continuous(breaks = dat_win_demand$Winter[seq(1, 29, 4)],
                      labels = dat_win_demand$Label[seq(1, 29, 4)]) +
     
-  ylab("Heating degree days") + 
+  ylab("Avg. dly. heating degree days") + 
   ggtitle("Winter HDD and energy demand at Toronto, 1989\u20122018")
 ```
+
+Not great. A more elaborate transformation may clean up the graph a little, but let's try something else. 
 
 Another way to visualize two different data sets side-by side is to use a `facet_wrap`. Let's see an example of this too. 
 
 ```{r}
-dat_win_demand %>% gather(key = "Variable", value = "value", -Winter, -Label) %>%
+dat_win_demand %>%
+  pivot_longer(cols = HDD:Demand, names_to = "Variable", values_to = "value") %>%
   ggplot(aes(x = Winter, y = value)) + geom_line() +
   facet_wrap(~Variable, nrow = 2, scales = "free_y") + ylab("HDD / Energy demand (MW)") + 
   ggtitle("Winter HDD and energy demand at Toronto, 1989\u20122018")
@@ -269,7 +279,7 @@ Now that we have began to explore these data, complete the following exercises.
 
 1. Fit a model to the HDD data and the energy demand data. Is the relationship significant?
 2. Repeat the above process for the Summer Season, using Cooling Degree Days, which are the degrees of cooling required to bring the mean temperature _down_ to the base temperature of 18°C. Create the following plots: 
-  - A plot of total summer CDD
+  - A plot of average daily summer CDD
   - A plot of average summer energy demand
   - Either a dual-axis plot or a facet wrapped plot of CDD and energy demand
   - A plot of energy demand over CDD
