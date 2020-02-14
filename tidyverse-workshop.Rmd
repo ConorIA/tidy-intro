@@ -77,7 +77,7 @@ glimpse(Pizza)
 
 or even this way:
 
-```{r}
+```{r, eval=F}
 View(Pizza)
 ```
 
@@ -464,10 +464,11 @@ weights
 
 Column `drug` is tidy. But the five columns `Time0` through `Time4` are all measurements of the same thing (weight) at different times, and there are five observations in each row. So if we can make a column of weights and a column of times, labelled by the right rat, we should be good.
 
-This is what `gather` does:
+This is what `pivot_longer` does:
 
 ```{r}
-weights %>% gather(time, weight, starts_with("Time")) -> weights.tidy
+weights %>%
+  pivot_longer(starts_with("Time"), names_to = "time", values_to = "weight") -> weights.tidy
 weights.tidy
 ```
 
@@ -509,13 +510,14 @@ seps
 These are numbers of patient days and "separations" for hospital admissions for different reasons during different financial years. First we need to gather up the years (I'll call "value" what they have in common):
 
 ```{r}
-seps %>% gather(year, value, starts_with("FY"))
+seps %>% pivot_longer(starts_with("FY"), names_to = "year", values_to = "value")
 ```
 
 But now `value` encodes two different things: patient days and separations. This data frame is actually *too* long, and needs widening out. `spread` does the opposite of `gather`: we want a column of patient days and a column of separations for each year and reason:
 
 ```{r}
-seps %>% gather(year, value, starts_with("FY")) %>% 
+seps %>%
+  pivot_longer(starts_with("FY"), names_to = "year", values_to = "value") %>% 
   spread(Field, value)
 ```
 
@@ -532,13 +534,13 @@ usa1850
 In 1850, for each of the (then) states of the US, how many people were born there, and how many were born elsewhere, and if so, where? Eg. there were 91 people currently living in Alabama who were born in Arkansas, and 33 who were born in Austria. Can we tidy this up?
 
 ```{r}
-usa1850 %>% gather(birthplace, freq, -`State Name`) 
+usa1850 %>% pivot_longer(-`State Name`, "birthplace", values_to = "freq") 
 ```
 
 The birthplace column encodes two things: were they born in the US ("native") or elsewhere ("foreign"), and where?
 
 ```{r}
-usa1850 %>% gather(birthplace, freq, -`State Name`) %>% 
+usa1850 %>% pivot_longer(-`State Name`, "birthplace", values_to = "freq") %>% 
   separate(birthplace, into=c("was_usa", "where_born"), sep=": ") -> d
 d
 ```
@@ -769,4 +771,3 @@ athletes %>% nest(-Sport) %>%
   spread(end, ci)
 ```
 
-   
