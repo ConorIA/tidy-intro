@@ -226,6 +226,13 @@ ggplot(athletes,aes(x=Sport,fill=Sex))+
   geom_bar(position="dodge")
 ```
 
+Can we keep a fixed bar width?
+
+```{r}
+ggplot(athletes,aes(x=Sport,fill=Sex))+
+  geom_bar(position=position_dodge2(width=0.9, preserve="single"))
+```
+
 
 Height and weight by gender:
 
