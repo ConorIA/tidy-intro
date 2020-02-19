@@ -3,14 +3,6 @@ title: "Tidyverse Intro"
 output: html_notebook
 ---
 
-## Packages
-
-```{r}
-library(tidyverse)
-library(ggrepel) # for labelling points on plots
-```
-
-
 ## The Tidyverse contains:
 
 1. `readr` for reading in data from files
@@ -41,6 +33,12 @@ In the likely event that you don't have `ggrepel`, you will also need
 install.packages("ggrepel")
 ```
 
+## Loading Tidyverse (after you've installed it)
+
+```{r}
+library(tidyverse)
+library(ggrepel) # for labelling points on plots
+```
 
 ## Reading in data
 
@@ -53,6 +51,21 @@ Examples:
 - data in text file, lined up in columns: `read_table`
 
 All of these can read from URLs, or from files on your computer. 
+
+From own computer (make spreadsheet called `thingy.csv` first somewhere):
+
+```{r}
+f <- file.choose()
+f
+```
+
+then
+
+```{r}
+thingy <- read_csv(f)
+thingy
+```
+
 
 Reading from URL: set up the URL first
 
@@ -513,12 +526,12 @@ These are numbers of patient days and "separations" for hospital admissions for 
 seps %>% pivot_longer(starts_with("FY"), names_to = "year", values_to = "value")
 ```
 
-But now `value` encodes two different things: patient days and separations. This data frame is actually *too* long, and needs widening out. `spread` does the opposite of `gather`: we want a column of patient days and a column of separations for each year and reason:
+But now `value` encodes two different things: patient days and separations. This data frame is actually *too* long, and needs widening out. `pivot_wider` does the opposite of `pivot_longer`: we want a column of patient days and a column of separations for each year and reason:
 
 ```{r}
 seps %>%
   pivot_longer(starts_with("FY"), names_to = "year", values_to = "value") %>% 
-  spread(Field, value)
+  pivot_wider(names_from=Field, values_from=value)
 ```
 
 Now we have something we can work with.
@@ -718,7 +731,7 @@ backpacks %>% nest(-Sex) %>%
   mutate(ci=map(t_test, "conf.int")) %>% 
   unnest(ci) %>% 
   mutate(end=c("L", "U", "L", "U")) %>% 
-  spread(end, ci)
+  pivot_wider(names_from=end, values_from=ci)
 ```
 
 On average, we estimate female students to carry a mean of between 7% and 9% of their body weight in their backpacks, and males a mean of between 6.2% and 8.4%.
@@ -760,14 +773,14 @@ athletes %>% nest(-Sport) %>%
   unnest(ci)
 ```
 
-or, fancy:
+or, extra fancy:
 
 ```{r}
 athletes %>% nest(-Sport) %>% 
   mutate(t_test=map(data, ~with(., t.test(Ht)))) %>% 
   mutate(ci=map(t_test, "conf.int")) %>% 
   unnest(ci) %>% 
-  mutate(end=gl(2, 1, length=20, labels=c("L", "U"))) %>% 
-  spread(end, ci)
+  mutate(end=gl(2, 1, length=nrow(.), labels=c("L", "U"))) %>% 
+  pivot_wider(names_from=end, values_from=ci)
 ```
 
