@@ -52,7 +52,7 @@ Examples:
 
 All of these can read from URLs, or from files on your computer. 
 
-From own computer (make spreadsheet called `thingy.csv` first somewhere):
+From own computer (make spreadsheet called `thing.csv` first somewhere):
 
 ```{r}
 f <- file.choose()
@@ -466,6 +466,48 @@ athletes %>% mutate(
 
 5. Create a new column that is each athlete's height in feet (there are 30.5 centimetres in a foot), and display both the original height and the new one (bonus: without naming the columns explicitly).
 
+## Some additional column manipulation
+
+```{r}
+covid <- read_csv("https://health-infobase.canada.ca/src/data/covidLive/covid19.csv")
+```
+
+
+```{r}
+glimpse(covid)
+```
+
+
+```{r}
+covid <- covid %>% select(prov = prname, date, starts_with("num"))
+covid
+```
+
+
+```{r}
+covid %>% filter(!prov %in% c("Canada", "Repatriated travellers")) %>%
+  arrange(prov, date) -> covid
+covid
+```
+
+Something is fishy with our date column
+
+```{r}
+covid %>% mutate(date = lubridate::dmy(date)) %>% 
+  arrange(prov, date) -> covid
+covid
+```
+
+```{r}
+ggplot(covid, aes(x = date, y = numtotal, colour = prov)) + geom_smooth(span = 0.2)
+```
+
+```{r}
+covid %>% mutate(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC")) %>% 
+  group_by(prov, date) %>% 
+  summarize_all(sum) %>% 
+  ggplot(aes(x = date, y = numtotal, colour = prov)) + geom_smooth(span = 0.2)
+```
 
 ## Tidying untidy data
 
@@ -519,6 +561,16 @@ This is called a "spaghetti plot". This one says that thiouracil inhibits growth
 
 (Imagine drawing the graph without tidying the data!)
 
+Now that we know how to pivot: 
+
+```{r}
+covid %>% mutate(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC")) %>% 
+  group_by(prov, date) %>% 
+  summarize_all(sum) %>% 
+  select(prov, date, numtotal, numdeaths) %>% 
+  pivot_longer(names_to = "type", values_to = "n", c(-prov, -date)) %>% 
+  ggplot(aes(x = date, y = n, linetype = type, colour = prov)) + geom_smooth(span = 0.3)
+```
 
 Now look at this one:
 
@@ -620,9 +672,7 @@ This is a common layout for data in one-way ANOVA: there are 12 observations, fo
 
 **** break here ****
 
-Conor's case study
-
-time permitting, this:
+HDD case study, then, time permitting, this:
 
 
 ## `purrr`, `map` and list-columns
