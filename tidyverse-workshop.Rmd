@@ -333,7 +333,7 @@ coffee %>% group_by(cup) %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(temp
 You can calculate other statistics, any that R and `dplyr` between them know about:
 
 ```{r}
-coffee %>% group_by(cup) %>% summarize(med=mean(tempdiff), Q1=quantile(tempdiff, 0.25), Q3=quantile(tempdiff, 0.75), iqr=IQR(tempdiff))
+coffee %>% group_by(cup) %>% summarize(med=median(tempdiff), Q1=quantile(tempdiff, 0.25), Q3=quantile(tempdiff, 0.75), iqr=IQR(tempdiff))
 ```
 
 A shortcut: `count` counts many observations there are in each group defined by a categorical variable:
@@ -449,6 +449,7 @@ You can do several mutates at once, even splitting lines:
 ```{r}
 athletes %>% mutate(
   wt_lb=Wt*2.2,
+  wt_st=wt_lb/14,
   ht_in=Ht/2.54
 ) %>% select(starts_with("wt"), starts_with("ht"))
 ```
@@ -540,10 +541,10 @@ There were 27 rats, each measured at 5 times, so we have this many observations:
 27*5
 ```
 
-In gather:
-- what makes the columns (to be gathered up) different
-- what makes them the same
-- the columns to gather (eg. with a select-helper)
+In `pivot_longer`:
+- which columns do you want to gather up? (eg. with a select-helper)
+- what do you want to call the new column?
+- what should the values be called?
 
 Now eg. we can plot each rat's weight over time:
 
@@ -606,7 +607,7 @@ usa1850
 In 1850, for each of the (then) states of the US, how many people were born there, and how many were born elsewhere, and if so, where? Eg. there were 91 people currently living in Alabama who were born in Arkansas, and 33 who were born in Austria. Can we tidy this up?
 
 ```{r}
-usa1850 %>% pivot_longer(-`State Name`, "birthplace", values_to = "freq") 
+usa1850 %>% pivot_longer(-`State Name`, names_to = "birthplace", values_to = "freq") 
 ```
 
 The birthplace column encodes two things: were they born in the US ("native") or elsewhere ("foreign"), and where?
@@ -638,7 +639,7 @@ d1
 d %>% 
   group_by(`State Name`) %>% count(was_usa, wt=freq) %>% 
   mutate(proportion=n/sum(n)) %>% 
-  filter(was_usa=="Native-born") %>% 
+  filter(was_usa=="Foreign-born") %>% 
   arrange(desc(proportion)) -> d2
 d2
 ```
@@ -807,6 +808,7 @@ Here is a data frame that contains a column u with values 1 through 10:
 
 ```{r}
 d=tibble(u=1:10)
+d
 ```
 
 Use `mutate` and `map_dbl` to create a new column `v` that takes each value of `u` and runs `dp1` on it.
@@ -841,3 +843,8 @@ athletes %>% nest(-Sport) %>%
   pivot_wider(names_from=end, values_from=ci)
 ```
 
+## Resources
+
+- [Cheatsheets](https://rstudio.com/resources/cheatsheets/) from RStudio Cloud
+- [R for Data Science](https://r4ds.had.co.nz/) - book by creator of Tidyverse, Hadley Wickham 
+- [Data Science with R](https://robust-tools.djnavarro.net/) - introductory course by Danielle Navarro
