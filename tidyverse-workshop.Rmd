@@ -119,28 +119,30 @@ denali=read_table(my_url)
 denali
 ```
 
-To find files on your computer, you can use this idea:
+There are `write_` versions of the `read_` functions:
 
 ```{r, eval=F}
-f=file.choose()
+write_delim(thingy, file = "thing.txt", delim = " ")
 ```
 
-navigating to the file you want. The value saved in `f` can be used as a filename in a `readr` function, thus:
-
 ```{r}
-f
-thing=read_delim(f, " ")
+thing=read_delim(f, "thing.txt", delim = " ")
 ```
 
 ```{r}
 thing
 ```
 
+```{r}
+identical(thingy, thing)
+```
+
+
 `readr` reads text in as text, not as factors (that you might be used to from `read.table` and friends). Usually it is fine to have categorical variables as text rather than factors, but occasionally it matters (see `forcats`).
 
 ### Practice at reading in data
 
-1. Read the .csv file at `http://www.utsc.utoronto.ca/~butler/c32/coasters.csv` into a dataframe and display it. (Copy and paste the URL.)
+1. Read the .csv file at `https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/coasters.csv` into a dataframe and display it. (Copy and paste the URL.)
 
 2. Read in the space-delimited text file at `http://www.utsc.utoronto.ca/~butler/c32/coffee.txt` into a dataframe and display it.
 
@@ -153,7 +155,7 @@ thing
 The roller coasters data from the previous exercise looks like this:
 
 ```{r}
-my_url="http://www.utsc.utoronto.ca/~butler/c32/coasters.csv"
+my_url="https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/coasters.csv"
 coasters=read_csv(my_url)
 coasters
 ```
@@ -161,14 +163,14 @@ coasters
 For each of the roller coasters, the drop (in feet, from start to finish) and the duration of the ride (in seconds) are recorded. These are two quantitative variables (measured, not categorized), so a scatterplot would be a way to look for any relationship between them. A scatterplot has an x (drop, here) and a y (duration), so a scatterplot goes like this:
 
 ```{r}
-ggplot(coasters, aes(x=drop, y=duration))+geom_point()
+ggplot(coasters, aes(x=Height, y=Speed))+geom_point()
 ```
 
 Extra: label the points by which rollercoaster they are thus:
 
 ```{r}
 library(ggrepel)
-ggplot(coasters, aes(x=drop, y=duration, label=coaster_name))+geom_point()+geom_text_repel()
+ggplot(coasters, aes(x=Height, y=Speed, label=`Roller Coaster`))+geom_point()+geom_text_repel()
 ```
 
 Compare the coffee cups, thus:
@@ -673,7 +675,7 @@ This is a common layout for data in one-way ANOVA: there are 12 observations, fo
 
 **** break here ****
 
-HDD case study, then, time permitting, this:
+webscraping tutorial here
 
 
 ## `purrr`, `map` and list-columns
