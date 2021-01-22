@@ -1,0 +1,163 @@
+---
+title: "Getting data from the web"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(rvest)
+```
+The page that we want to use uses outdated SSL. You may be able to skip this step, but my computer doesn't connect to the website unless I tell it explicitly to allow the old SSL.
+
+```{r}
+httr::set_config(httr::config(ssl_cipher_list = "DEFAULT@SECLEVEL=1"))
+```
+
+Let's download the page. You may be able to pass the URL directly to `read_html()`, but if you need to downgrade security, like I mentioned, then you can instead pass the request through `httr::GET()`.
+
+```{r}
+page <- read_html(httr::GET("https://www.ultimaterollercoaster.com/coasters/parks/canadas-wonderland"))
+```
+
+```{r}
+page
+```
+Let's extract any tables from the page. 
+
+```{r}
+tables <- html_table(page)
+glimpse(tables)
+```
+The webpage has two tables. One is the "operational table", and one is for decomissioned coasters. Let's focus on the operating ones!
+
+```{r}
+tab <- tables[[1]]
+tab
+```
+
+The table doesn't include coaster stats, so let's look for them. In the original table, each of the coaster names was linked. Let's extract all of the links in the table (the "a" nodes), and get the link location (identified by "href").
+
+```{r}
+page %>% html_nodes("a") %>% html_attr('href') -> links
+head(links)
+```
+
+Ugh! Relative links. No thank you. 
+
+```{r}
+links <- paste0("https://www.ultimaterollercoaster.com", links)
+head(links)
+```
+The links aren't very useful unless we know that they were labelled as. Let's get the text of each link too. 
+
+```{r}
+page %>% html_nodes("a") %>% html_text() -> link_names
+head(link_names)
+```
+Now let's build a table. 
+
+```{r}
+links <- tibble(name = link_names, link = links)
+links
+```
+
+Now we can cross reference our coaster table with our link table. 
+
+```{r}
+tab <- left_join(tab, links, by = c("Roller Coaster" = "name"))
+tab
+```
+
+So now we know a couple of things: 
+
+1) The name of each coaster
+2) Where we can find its profile page
+
+We still don't know anything about how awesome these coasters are!
+
+Let's look at a single page, and the we can generalize across the other pages. Leviathan is one of the biggest Wonderland coasters, let's check it out. 
+
+```{r}
+lev <- read_html(httr::GET(tab %>%
+                             filter(`Roller Coaster` == "Leviathan") %>%
+                             select(link) %>%
+                             unlist()))
+
+lev
+```
+
+The coaster profile page doesn't list stats in a table. This gives us a chance to extract some new node types. Let's get all of the list items ("li") in the HTML div called "rc_stats".
+
+```{r}
+lev %>% html_nodes("div") %>% html_attr("class") -> div_names
+stats <- lev %>% html_nodes("div") %>% `[[`(which(div_names == "rc_stats"))
+stats
+```
+Now we can extract the stats.
+
+```{r}
+stats %>% html_nodes("li") %>% html_text() -> stats
+stats
+```
+And finally, some text processing. Reshaping, unit converting. 
+
+```{r}
+stats %>% as_tibble() %>% 
+  mutate(split = str_split(value, ": ")) %>% 
+  unnest_wider(split, names_repair = ~c("old", "metric", "value")) %>% 
+  select(-old) %>% 
+  filter(metric %in% c("Drop", "Top Speed")) %>% 
+  pivot_wider(names_from = "metric", values_from = "value") %>% 
+  rename(Speed = `Top Speed`) %>% 
+  mutate(Drop = as.numeric(str_extract(Drop, "[0-9]+")) * 0.3048,
+         Speed = as.numeric(str_extract(Speed, "[0-9]+")) * 1.609344)
+```
+So, we got one coaster done. It was a lot of work, and I don't want to do that to each one, so let's get crazy with a function!
+
+```{r}
+stats <- function(link) {
+  page <- read_html(httr::GET(link))
+    
+  page %>% 
+    html_nodes("div") %>%
+    html_attr("class") -> div_names
+  
+  stats <- page %>% html_nodes("div") %>%
+    `[[`(which(div_names == "rc_stats")) %>% 
+    html_nodes("li") %>% html_text()
+
+stats %>% as_tibble() %>% 
+  mutate(split = str_split(value, ": ")) %>% 
+  unnest_wider(split, names_repair = ~c("old", "metric", "value")) %>% 
+  select(-old) %>% 
+  filter(metric %in% c("Height", "Top Speed")) %>% 
+  pivot_wider(names_from = "metric", values_from = "value") %>% 
+  rename(Speed = `Top Speed`) %>% 
+  mutate(Height = as.numeric(str_extract(Height, "[0-9]+")) * 0.3048,
+         Speed = as.numeric(str_extract(Speed, "[0-9]+")) * 1.609344)
+}
+```
+
+Apply it to each link, and do a little cleanup.
+
+```{r}
+tab %>% mutate(stats = map(link, ~(stats(.)))) %>%
+  unnest_wider(stats) %>% 
+  select(-link) -> tab
+tab
+```
+
+Let's have a look!
+
+```{r}
+library(ggrepel)
+ggplot(tab, aes(x = Height, y = Speed, label = `Roller Coaster`)) + 
+  geom_point() +
+  geom_text_repel()
+```
+
+I'll save this data to use elsewhere in the workshop.
+```{r}
+write_csv(tab, "data/coasters.csv")
+```
+
