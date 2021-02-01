@@ -106,10 +106,10 @@ stats %>% as_tibble() %>%
   mutate(split = str_split(value, ": ")) %>% 
   unnest_wider(split, names_repair = ~c("old", "metric", "value")) %>% 
   select(-old) %>% 
-  filter(metric %in% c("Drop", "Top Speed")) %>% 
+  filter(metric %in% c("Height", "Top Speed")) %>% 
   pivot_wider(names_from = "metric", values_from = "value") %>% 
   rename(Speed = `Top Speed`) %>% 
-  mutate(Drop = as.numeric(str_extract(Drop, "[0-9]+")) * 0.3048,
+  mutate(Height = as.numeric(str_extract(Height, "[0-9]+")) * 0.3048,
          Speed = as.numeric(str_extract(Speed, "[0-9]+")) * 1.609344)
 ```
 So, we got one coaster done. It was a lot of work, and I don't want to do that to each one, so let's get crazy with a function!
@@ -117,24 +117,24 @@ So, we got one coaster done. It was a lot of work, and I don't want to do that t
 ```{r}
 stats <- function(link) {
   page <- read_html(httr::GET(link))
-    
+  
   page %>% 
     html_nodes("div") %>%
     html_attr("class") -> div_names
   
-  stats <- page %>% html_nodes("div") %>%
+  page %>% html_nodes("div") %>%
     `[[`(which(div_names == "rc_stats")) %>% 
-    html_nodes("li") %>% html_text()
-
-stats %>% as_tibble() %>% 
-  mutate(split = str_split(value, ": ")) %>% 
-  unnest_wider(split, names_repair = ~c("old", "metric", "value")) %>% 
-  select(-old) %>% 
-  filter(metric %in% c("Height", "Top Speed")) %>% 
-  pivot_wider(names_from = "metric", values_from = "value") %>% 
-  rename(Speed = `Top Speed`) %>% 
-  mutate(Height = as.numeric(str_extract(Height, "[0-9]+")) * 0.3048,
-         Speed = as.numeric(str_extract(Speed, "[0-9]+")) * 1.609344)
+    html_nodes("li") %>% 
+    html_text() %>% 
+    as_tibble() %>% 
+    mutate(split = str_split(value, ": ")) %>% 
+    unnest_wider(split, names_repair = ~c("old", "metric", "value")) %>% 
+    select(-old) %>% 
+    filter(metric %in% c("Height", "Top Speed")) %>% 
+    pivot_wider(names_from = "metric", values_from = "value") %>% 
+    rename(Speed = `Top Speed`) %>% 
+    mutate(Height = as.numeric(str_extract(Height, "[0-9]+")) * 0.3048,
+           Speed = as.numeric(str_extract(Speed, "[0-9]+")) * 1.609344)
 }
 ```
 

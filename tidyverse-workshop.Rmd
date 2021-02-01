@@ -14,8 +14,7 @@ output: html_notebook
 7. `lubridate` for dates and times
 8. `purrr` for "for-each" in a data frame, and "split/apply/combine"
 
-I talk about some of these today (1-4 and maybe 8),
-and later Conor looks at a case study in which some of these tools are brought together.
+We will talk about some of these today (1-4), and we have a couple of case-study options to see how these tools are brought together.
 
 We will intersperse time for you to practice the ideas.
 
@@ -126,7 +125,7 @@ write_delim(thingy, file = "thing.txt", delim = " ")
 ```
 
 ```{r}
-thing=read_delim(f, "thing.txt", delim = " ")
+thing=read_delim("thing.txt", delim = " ")
 ```
 
 ```{r}
@@ -350,6 +349,14 @@ This is short for
 coffee %>% group_by(cup) %>% summarize(n=n())
 ```
 
+You can even create new grouping variables on the fly.
+
+```{r}
+coffee %>% group_by(cup) %>%
+  summarize(temp_mean = mean(tempdiff), n = n(), .groups = "drop") %>% 
+  group_by(quality = ifelse(temp_mean < 10, "high", "low")) %>%
+  summarize(temp_mean = weighted.mean(temp_mean, n))
+```
 
 ### Practice summarizing data
 
@@ -403,7 +410,11 @@ athletes %>% select(Sex:RCC)
 To select *rows*, use `filter` with a condition that has to be `TRUE` for the rows you want:
 
 ```{r}
-athletes %>% filter(Sport=="Tennis")
+athletes %>% filter(Sport == "Tennis")
+```
+
+```{r}
+athletes %>% filter(Sport %in% c("Tennis", "Field"))
 ```
 
 ```{r}
