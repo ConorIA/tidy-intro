@@ -63,7 +63,7 @@ dat_long <- dat %>%
 
 Great. Let's make a first plot for a quick visual confirmation that our data is complete and doesn't contain wildly incorrect observations.
 
-```{r}
+```{r warning=FALSE}
 ggplot(dat_long, aes(x = Date, y = Value, colour = Variable)) +
   geom_line() +
   ggtitle("Daily Temperature at Toronto (5051), 1989\u20122018") +
@@ -196,7 +196,7 @@ Now that we have shifted the year for our Decembers, and have labelled each valu
 ```{r}
 demand_agg <- demand %>%
   group_by(Year, Season) %>%
-  group_by(n = n(), add = TRUE) %>%
+  group_by(n = n(), .add = TRUE) %>%
   select(-Date) %>%
   summarize_all(list(mean = mean, sd = sd)) %>%
   filter(n >= 90) %>% print()
@@ -204,7 +204,7 @@ demand_agg <- demand %>%
 
 Great. Let's plot the mean seasonal demand against the year. We'll add error bars showing the standard error of the mean.  
 
-```{r}
+```{r warning=FALSE}
 win_demand <- demand_agg %>%
   filter(Season ==1) %>%
   mutate(se = Mean_sd / sqrt(n))
@@ -235,7 +235,7 @@ dat_win_demand <- dat_win_demand %>% select(Winter, Label, HDD, Demand = Mean_me
 
 Now let's visualize our data. First, let's try plotting both variables, using a secondary axis in **ggplot2**. Secondary axes in **ggplot2** are based on some transformation of the values of one or more series. Here we will take the demand data, and divide each observation by 300. This will put the data in the same ball park as the HDD data. On the secondary axis, we will use a transformation to multiply each  tick mark by 300 so that the value is representative of the true energy demand data.
 
-```{r}
+```{r warning=FALSE}
 ggplot(dat_win_demand, aes(x = Winter)) + 
   geom_line(aes(y = HDD, colour = "HDD")) + 
   geom_line(aes(y = Demand / 300, colour = "Demand")) +
@@ -251,7 +251,7 @@ Not great. A more elaborate transformation may clean up the graph a little, but 
 
 Another way to visualize two different data sets side-by side is to use a `facet_wrap`. Let's see an example of this too. 
 
-```{r}
+```{r warning=FALSE}
 dat_win_demand %>%
   pivot_longer(cols = HDD:Demand, names_to = "Variable", values_to = "value") %>%
   ggplot(aes(x = Winter, y = value)) + geom_line() +
@@ -261,7 +261,7 @@ dat_win_demand %>%
 
 Finally, we can plot these variables, one against the other. 
 
-```{r}
+```{r warning=FALSE}
 ggplot(dat_win_demand, aes(x = HDD, y = Demand)) +
   geom_point() +
   geom_smooth(method = lm) +

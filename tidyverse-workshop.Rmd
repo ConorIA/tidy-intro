@@ -726,7 +726,7 @@ Two ways:
 2. Split-apply-combine: do it all in one dataframe.
 
 ```{r}
-backpacks %>% nest(-Sex)
+backpacks %>% nest(data = -Sex)
 ```
 
 We appear to have lost all our data! But those things in the `data` column are actually data frames, within a data frame! They are all the rest of the data, just for females (the first one), and just for males (the second one). This is like what we would have done with `filter`, only tidier. The `data` column is called a "list-column".
@@ -745,7 +745,7 @@ backpacks.1
 But we want to do it for each `Sex`. This is how:
 
 ```{r}
-backpacks %>% nest(-Sex) %>%
+backpacks %>% nest(data = -Sex) %>%
   mutate(t_test=map(data, ~with(., t.test(Ratio, mu=0.10, alternative="less"))))
 ```
 
@@ -763,7 +763,7 @@ backpacks.1$p.value
 so:
 
 ```{r}
-backpacks %>% nest(-Sex) %>%
+backpacks %>% nest(data = -Sex) %>%
   mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10,alternative="less")))) %>% 
   mutate(p_value=map_dbl(t_test, "p.value"))
 ```
@@ -773,14 +773,14 @@ Both P-values are less than 0.05, so the mean weight ratio for both sexes is sig
 How much less? We can look at 95% confidence intervals. But for those, we have to do the t-tests again, this time two-sided:
 
 ```{r}
-backpacks %>% nest(-Sex) %>%
+backpacks %>% nest(data = -Sex) %>%
   mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) 
 ```
 
 and then pull out the thing called `conf.int`:
 
 ```{r}
-backpacks %>% nest(-Sex) %>%
+backpacks %>% nest(data = -Sex) %>%
   mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
   mutate(ci=map(t_test, "conf.int"))
 ```
@@ -788,7 +788,7 @@ backpacks %>% nest(-Sex) %>%
 except that confidence intervals are *two* numbers, and we want to see them:
 
 ```{r}
-backpacks %>% nest(-Sex) %>%
+backpacks %>% nest(data = -Sex) %>%
   mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
   mutate(ci=map(t_test, "conf.int")) %>% 
   unnest(ci)
@@ -797,7 +797,7 @@ backpacks %>% nest(-Sex) %>%
 or even, to be fancy:
 
 ```{r}
-backpacks %>% nest(-Sex) %>%
+backpacks %>% nest(data = -Sex) %>%
   mutate(t_test=map(data, ~with(., t.test(Ratio,mu=0.10)))) %>% 
   mutate(ci=map(t_test, "conf.int")) %>% 
   unnest(ci) %>% 
@@ -839,7 +839,7 @@ Use `mutate` and `map_dbl` to create a new column `v` that takes each value of `
 My solution:
 
 ```{r}
-athletes %>% nest(-Sport) %>% 
+athletes %>% nest(data = -Sport) %>% 
   mutate(t_test=map(data, ~with(., t.test(Ht)))) %>% 
   mutate(ci=map(t_test, "conf.int")) %>% 
   unnest(ci)
@@ -848,7 +848,7 @@ athletes %>% nest(-Sport) %>%
 or, extra fancy:
 
 ```{r}
-athletes %>% nest(-Sport) %>% 
+athletes %>% nest(data = -Sport) %>% 
   mutate(t_test=map(data, ~with(., t.test(Ht)))) %>% 
   mutate(ci=map(t_test, "conf.int")) %>% 
   unnest(ci) %>% 
