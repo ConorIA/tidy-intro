@@ -94,38 +94,38 @@ View(Pizza)
 ```
 
 
-Space-delimited:
+If your data are separated by one or more spaces:
 
 ```{r}
 my_url="http://www.utsc.utoronto.ca/~butler/c32/baseball.txt"
-baseball=read_delim(my_url, " ")
+baseball=read_table(my_url)
 ```
 
 ```{r}
 baseball
 ```
 
-`read_delim` reads files delimited by any single character, not just a space.
-
-Aligned by columns:
+If you have non-standard data, you can separate columns based on a fixed-width:
 
 ```{r}
-my_url="http://www.utsc.utoronto.ca/~butler/c32/caribou.txt"
-denali=read_table(my_url)
+f="fwthing.txt"
+fwthing=read_fwf(f, col_positions = fwf_widths(c(2, 2, 1), col_names = c("x", "y", "g")), skip = 1)
 ```
 
 ```{r}
-denali
+fwthing
 ```
+
+You can specify any arbitrary delimiter using the `read_delim()` function. 
 
 There are `write_` versions of the `read_` functions:
 
 ```{r, eval=F}
-write_delim(thingy, file = "thing.txt", delim = " ")
+write_delim(thingy, file = "thing.txt", delim = ";")
 ```
 
 ```{r}
-thing=read_delim("thing.txt", delim = " ")
+thing=read_delim("thing.txt", delim = ";")
 ```
 
 ```{r}
@@ -133,7 +133,7 @@ thing
 ```
 
 ```{r}
-identical(thingy, thing)
+all_equal(thing, thingy)
 ```
 
 
@@ -464,7 +464,7 @@ athletes %>% mutate(
   wt_lb=Wt*2.2,
   wt_st=wt_lb/14,
   ht_in=Ht/2.54
-) %>% select(starts_with("wt"), starts_with("ht"))
+) %>% select(wt_kg = Wt, starts_with("wt"), ht_cm = Ht, starts_with("ht"))
 ```
 
 
@@ -517,8 +517,8 @@ ggplot(covid, aes(x = date, y = numtotal, colour = prov)) + geom_smooth(span = 0
 ```
 
 ```{r}
-covid %>% mutate(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC")) %>% 
-  group_by(prov, date) %>% 
+covid %>%
+  group_by(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC"), date) %>% 
   summarize_all(sum) %>% 
   ggplot(aes(x = date, y = numtotal, colour = prov)) + geom_smooth(span = 0.2)
 ```
@@ -578,8 +578,8 @@ This is called a "spaghetti plot". This one says that thiouracil inhibits growth
 Now that we know how to pivot: 
 
 ```{r}
-covid %>% mutate(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC")) %>% 
-  group_by(prov, date) %>% 
+covid %>%
+  group_by(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC"), date) %>% 
   summarize_all(sum) %>% 
   select(prov, date, numtotal, numdeaths) %>% 
   pivot_longer(names_to = "type", values_to = "n", c(-prov, -date)) %>% 

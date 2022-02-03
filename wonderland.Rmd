@@ -103,9 +103,7 @@ And finally, some text processing. Reshaping, unit converting.
 
 ```{r}
 stats %>% as_tibble() %>% 
-  mutate(split = str_split(value, ": ")) %>% 
-  unnest_wider(split, names_repair = ~c("old", "metric", "value")) %>% 
-  select(-old) %>% 
+  separate(value, c("metric", "value"), ": ") %>% 
   filter(metric %in% c("Height", "Top Speed")) %>% 
   pivot_wider(names_from = "metric", values_from = "value") %>% 
   rename(Speed = `Top Speed`) %>% 
@@ -127,9 +125,7 @@ stats <- function(link) {
     html_nodes("li") %>% 
     html_text() %>% 
     as_tibble() %>% 
-    mutate(split = str_split(value, ": ")) %>% 
-    unnest_wider(split, names_repair = ~c("old", "metric", "value")) %>% 
-    select(-old) %>% 
+    separate(value, c("metric", "value"), ": ") %>% 
     filter(metric %in% c("Height", "Top Speed")) %>% 
     pivot_wider(names_from = "metric", values_from = "value") %>% 
     rename(Speed = `Top Speed`) %>% 
@@ -141,7 +137,7 @@ stats <- function(link) {
 Apply it to each link, and do a little cleanup.
 
 ```{r}
-tab %>% mutate(stats = map(link, ~(stats(.)))) %>%
+tab %>% mutate(stats = map(link, ~(stats(.)))) %>% 
   unnest_wider(stats) %>% 
   select(-link) -> tab
 tab
