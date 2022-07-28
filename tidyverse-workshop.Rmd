@@ -159,7 +159,7 @@ coasters=read_csv(my_url)
 coasters
 ```
 
-For each of the roller coasters, the drop (in feet, from start to finish) and the duration of the ride (in seconds) are recorded. These are two quantitative variables (measured, not categorized), so a scatterplot would be a way to look for any relationship between them. A scatterplot has an x (drop, here) and a y (duration), so a scatterplot goes like this:
+For each of the roller coasters, the drop and the speed of the ride are recorded. These are two quantitative variables (measured, not categorized), so a scatterplot would be a way to look for any relationship between them. A scatterplot has an x (drop, here) and a y (speed), so a scatterplot goes like this:
 
 ```{r}
 ggplot(coasters, aes(x=Height, y=Speed))+geom_point()
@@ -418,7 +418,7 @@ athletes %>% filter(Sport %in% c("Tennis", "Field"))
 ```
 
 ```{r}
-athletes %>% filter(BMI>30)
+athletes %>% filter(BMI > 30)
 ```
 
 Combine:
@@ -493,7 +493,7 @@ glimpse(covid)
 
 
 ```{r}
-covid <- covid %>% select(prov = prname, date, starts_with("num"))
+covid %>% select(prov = prname, date, starts_with("num")) -> covid
 covid
 ```
 
@@ -620,7 +620,7 @@ usa1850
 In 1850, for each of the (then) states of the US, how many people were born there, and how many were born elsewhere, and if so, where? Eg. there were 91 people currently living in Alabama who were born in Arkansas, and 33 who were born in Austria. Can we tidy this up?
 
 ```{r}
-usa1850 %>% pivot_longer(-`State Name`, names_to = "birthplace", values_to = "freq") 
+usa1850 %>% pivot_longer(-`State Name`, names_to = "birthplace", values_to = "freq")
 ```
 
 The birthplace column encodes two things: were they born in the US ("native") or elsewhere ("foreign"), and where?
@@ -659,8 +659,8 @@ d2
 
 ```{r}
 d1 %>% left_join(d2, by=c("State Name"="State Name")) %>% 
-  select(res=`State Name`, in_state=proportion.x, in_us=proportion.y) %>% 
-  ggplot(aes(x=in_state, y=in_us, label=res)) + geom_point() + geom_text_repel()
+  select(res=`State Name`, in_state=proportion.x, in_other=proportion.y) %>% 
+  ggplot(aes(x=in_state, y=in_other, label=res)) + geom_point() + geom_text_repel()
 ```
 
 
@@ -694,10 +694,16 @@ webscraping tutorial here
 Let's create a data frame with the numbers 1 through 6, and then find the square roots of each of those:
 
 ```{r}
-tibble(x=1:6) %>% mutate(y=sqrt(x))
+tibble(x=1:6, y=sqrt(x))
 ```
 
 This works because `sqrt` is "vectorized": you can feed it a vector of inputs and it will give you a vector of square roots.
+
+We can break this into pieces like this:
+
+```{r}
+tibble(x=1:6) %>% mutate(y=sqrt(x))
+```
 
 Here is another, weirder, way:
 
@@ -734,6 +740,11 @@ We appear to have lost all our data! But those things in the `data` column are a
 Now, "for each data frame in `data`, run a t-test that the mean ratio is 0.10, against the alternative that the mean is *less* than 0.10".
 
 If we were doing it for all the data together, it would look like this:
+
+```{r}
+t.test(x = backpacks$Ratio, mu=0.10, alternative="less")
+```
+
 
 ```{r}
 backpacks.1=with(backpacks, t.test(Ratio, mu=0.10, alternative="less"))

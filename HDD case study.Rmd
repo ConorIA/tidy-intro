@@ -27,9 +27,16 @@ glimpse(dat)
 
 By golly those column names are verbose! In R, including in the tidyverse, we have to enclose names that contain spaces in quotation marks ("") or backticks (``). This is a drag! Let's rename some of these columns, to make them easier to type. 
 
-```{r}
+```{r, eval=FALSE}
 dat <- dat %>% rename(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
                       MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`)
+```
+
+Or, if, like me, your computer complains about Unicode characters ...
+
+```{r}
+dat <- dat %>% rename(Date = `Date/Time`, MaxTemp = "Max Temp (\u00B0C)",
+                      MinTemp = "Min Temp (\u00B0C)", MeanTemp = "Mean Temp (\u00B0C)")
 ```
 
 Now you can check the column names again.
@@ -81,8 +88,8 @@ Let's unlock the power of the tidyverse for this one. Here we will:
 
 ```{r, message=FALSE, warning=FALSE}
 dat2 <- read_csv("https://raw.githubusercontent.com/ConorIA/tidy-intro/master/data/31688-daily-2001-2018.csv") %>%
-  select(Date = `Date/Time`, MaxTemp = `Max Temp (°C)`,
-         MinTemp = `Min Temp (°C)`, MeanTemp = `Mean Temp (°C)`) %>%
+  select(Date = `Date/Time`, MaxTemp = "Max Temp (\u00B0C)",
+         MinTemp = "Min Temp (\u00B0C)", MeanTemp = "Mean Temp (\u00B0C)") %>%
   filter(Date >= "2003-01-01")
 
 dat <- dat %>% filter(Date < "2003-01-01") %>% bind_rows(dat2)
