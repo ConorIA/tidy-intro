@@ -86,24 +86,22 @@ lev <- read_html(httr::GET(tab %>%
 lev
 ```
 
-The coaster profile page doesn't list stats in a table. This gives us a chance to extract some new node types. Let's get all of the list items ("li") in the HTML div called "rc_stats".
+The coaster profile page doesn't list stats in a table; instead, it uses a labelled table. This gives us a chance to extract some new node types. Let's get all of the list items ("li") in the HTML div called "rc_stats".
 
 ```{r}
-lev %>% html_nodes("div") %>% html_attr("class") -> div_names
-stats <- lev %>% html_nodes("div") %>% `[[`(which(div_names == "rc_stats"))
+lev %>% html_element(".rc_stats") -> stats
 stats
 ```
-Now we can extract the stats.
+Now we can extract the stats, which are classes labelled "stat" and "stat-value", respectively. 
 
 ```{r}
-stats %>% html_nodes("li") %>% html_text() -> stats
-stats
+
 ```
-And finally, some text processing. Reshaping, unit converting. 
+And finally, reshaping, unit converting. 
 
 ```{r}
-stats %>% as_tibble() %>% 
-  separate(value, c("metric", "value"), ": ") %>% 
+tibble(metric = stats %>% html_elements(".stat") %>% html_text(),
+       value = stats %>% html_elements(".stat-value") %>% html_text()) %>% 
   filter(metric %in% c("Height", "Top Speed")) %>% 
   pivot_wider(names_from = "metric", values_from = "value") %>% 
   rename(Speed = `Top Speed`) %>% 
@@ -114,18 +112,11 @@ So, we got one coaster done. It was a lot of work, and I don't want to do that t
 
 ```{r}
 stats <- function(link) {
-  page <- read_html(httr::GET(link))
+  read_html(httr::GET(link)) %>% 
+    html_element(".rc_stats") -> stats
   
-  page %>% 
-    html_nodes("div") %>%
-    html_attr("class") -> div_names
-  
-  page %>% html_nodes("div") %>%
-    `[[`(which(div_names == "rc_stats")) %>% 
-    html_nodes("li") %>% 
-    html_text() %>% 
-    as_tibble() %>% 
-    separate(value, c("metric", "value"), ": ") %>% 
+  tibble(metric = stats %>% html_elements(".stat") %>% html_text(),
+       value = stats %>% html_elements(".stat-value") %>% html_text()) %>% 
     filter(metric %in% c("Height", "Top Speed")) %>% 
     pivot_wider(names_from = "metric", values_from = "value") %>% 
     rename(Speed = `Top Speed`) %>% 
