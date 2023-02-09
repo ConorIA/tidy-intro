@@ -493,7 +493,7 @@ glimpse(covid)
 
 
 ```{r}
-covid %>% select(prov = prname, date, starts_with("num")) -> covid
+covid %>% select(prov = prname, date, totalcases, numdeaths) -> covid
 covid
 ```
 
@@ -513,14 +513,14 @@ covid
 ```
 
 ```{r}
-ggplot(covid, aes(x = date, y = numtotal, colour = prov)) + geom_smooth(span = 0.2)
+ggplot(covid, aes(x = date, y = totalcases, colour = prov)) + geom_smooth(span = 0.2)
 ```
 
 ```{r}
 covid %>%
   group_by(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC"), date) %>% 
   summarize_all(sum) %>% 
-  ggplot(aes(x = date, y = numtotal, colour = prov)) + geom_smooth(span = 0.2)
+  ggplot(aes(x = date, y = totalcases, colour = prov)) + geom_smooth(span = 0.2)
 ```
 
 ## Tidying untidy data
@@ -581,7 +581,7 @@ Now that we know how to pivot:
 covid %>%
   group_by(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC"), date) %>% 
   summarize_all(sum) %>% 
-  select(prov, date, numtotal, numdeaths) %>% 
+  select(prov, date, totalcases, numdeaths) %>% 
   pivot_longer(names_to = "type", values_to = "n", c(-prov, -date)) %>% 
   ggplot(aes(x = date, y = n, linetype = type, colour = prov)) + geom_smooth(span = 0.3)
 ```
@@ -626,7 +626,7 @@ usa1850 %>% pivot_longer(-`State Name`, names_to = "birthplace", values_to = "fr
 The birthplace column encodes two things: were they born in the US ("native") or elsewhere ("foreign"), and where?
 
 ```{r}
-usa1850 %>% pivot_longer(-`State Name`, "birthplace", values_to = "freq") %>% 
+usa1850 %>% pivot_longer(-`State Name`, names_to = "birthplace", values_to = "freq") %>% 
   separate(birthplace, into=c("was_usa", "where_born"), sep=": ") -> d
 d
 ```
