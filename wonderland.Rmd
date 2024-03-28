@@ -92,12 +92,7 @@ The coaster profile page doesn't list stats in a table; instead, it uses a label
 lev %>% html_element(".rc_stats") -> stats
 stats
 ```
-Now we can extract the stats, which are classes labelled "stat" and "stat-value", respectively. 
-
-```{r}
-
-```
-And finally, reshaping, unit converting. 
+Now we can extract the stats, which are classes labelled "stat" and "stat-value", respectively, and do some reshaping, and unit converting. 
 
 ```{r}
 tibble(metric = stats %>% html_elements(".stat") %>% html_text(),
@@ -108,16 +103,20 @@ tibble(metric = stats %>% html_elements(".stat") %>% html_text(),
   mutate(Height = as.numeric(str_extract(Height, "[0-9]+")) * 0.3048,
          Speed = as.numeric(str_extract(Speed, "[0-9]+")) * 1.609344)
 ```
-So, we got one coaster done. It was a lot of work, and I don't want to do that to each one, so let's get crazy with a function!
+So, we got one coaster done. It was a lot of work, and I don't want to do that to each one, so let's get crazy with a function! I also created a template to force select only the values I am interested in, as some coasters don't have the stats we are looking for. 
 
 ```{r}
 stats <- function(link) {
   read_html(httr::GET(link)) %>% 
     html_element(".rc_stats") -> stats
   
+  lefttab <- tibble(metric = c("Height", "Top Speed"))
+  
   tibble(metric = stats %>% html_elements(".stat") %>% html_text(),
        value = stats %>% html_elements(".stat-value") %>% html_text()) %>% 
-    filter(metric %in% c("Height", "Top Speed")) %>% 
+    filter(metric %in% c("Height", "Top Speed")) -> stats 
+    
+  left_join(lefttab, stats, by = c("metric" = "metric")) %>% 
     pivot_wider(names_from = "metric", values_from = "value") %>% 
     rename(Speed = `Top Speed`) %>% 
     mutate(Height = as.numeric(str_extract(Height, "[0-9]+")) * 0.3048,
@@ -125,13 +124,14 @@ stats <- function(link) {
 }
 ```
 
-Apply it to each link, and do a little cleanup.
+Apply it to each link, and do a little cleanup. 
 
 ```{r}
-tab %>% mutate(stats = map(link, ~(stats(.)))) %>% 
+tab %>% 
+  mutate(stats = map(link, ~(stats(.)))) %>% 
   unnest_wider(stats) %>% 
+  filter(!is.na(Height) & !is.na(Speed)) %>% 
   select(-link) -> tab
-tab
 ```
 
 Let's have a look!
@@ -147,4 +147,3 @@ I'll save this data to use elsewhere in the workshop.
 ```{r}
 write_csv(tab, "data/coasters.csv")
 ```
-

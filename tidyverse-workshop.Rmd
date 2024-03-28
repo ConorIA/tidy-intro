@@ -133,7 +133,7 @@ thing
 ```
 
 ```{r}
-all_equal(thing, thingy)
+all.equal(thing, thingy, check.attributes = FALSE)
 ```
 
 
@@ -251,7 +251,13 @@ ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()+
 
 height vs weight for each gender and each sport?
 
-*Four* variables, two categorical. Use one of the categorical variables to make facets:
+```{r}
+ggplot(athletes,aes(x=Ht,y=Wt,colour=Sport,shape=Sex))+geom_point()
+```
+
+*Four* variables, two categorical. This is a mess and hard to understand!
+
+Better: Use one of the categorical variables to make facets:
 
 ```{r}
 ggplot(athletes,aes(x=Ht,y=Wt,colour=Sex))+geom_point()+facet_wrap(~Sport)
@@ -300,7 +306,6 @@ what is the mean and SD of temperature difference, and how many measurements wer
 ```{r}
 coffee %>% summarize(temp_mean=mean(tempdiff), temp_sd=sd(tempdiff), n=n())
 ```
-
 The symbol `%>%` is called the **pipe**. I read it as "and then": "take `coffee`, and then summarize it as shown". Keyboard shortcut: control-shift-M.
 
 The thing on the left side of the pipe is a dataframe ("tibble"), and the thing on the right side of the pipe uses that dataframe as input, so that the column `tempdiff` comes from dataframe `coffee`.
@@ -344,6 +349,12 @@ coffee %>% count(cup)
 ```
 
 This is short for
+
+```{r}
+coffee %>% group_by(cup) %>% tally()
+```
+
+Which itself is short for
 
 ```{r}
 coffee %>% group_by(cup) %>% summarize(n=n())
@@ -454,7 +465,7 @@ athletes %>% arrange(Ferr, BMI)
 To create a new column, use `mutate`. For example, these weights are in kg, with one kg being 2.2 lbs:
 
 ```{r}
-athletes %>% mutate(wt_lb=Wt*2.2) %>% select(Wt, wt_lb)
+athletes %>% mutate(wt_lb = Wt*2.2) %>% select(Wt, wt_lb)
 ```
 
 You can do several mutates at once, even splitting lines:
@@ -555,11 +566,11 @@ There were 27 rats, each measured at 5 times, so we have this many observations:
 ```
 
 In `pivot_longer`:
-- which columns do you want to gather up? (eg. with a select-helper)
+- which columns do you want to gather up? (e.g., with a select-helper)
 - what do you want to call the new column?
 - what should the values be called?
 
-Now eg. we can plot each rat's weight over time:
+Now e.g., we can plot each rat's weight over time:
 
 ```{r}
 ggplot(weights.tidy, aes(x=time, y=weight, group=rat))+geom_point()+geom_line()
@@ -583,7 +594,21 @@ covid %>%
   summarize_all(sum) %>% 
   select(prov, date, totalcases, numdeaths) %>% 
   pivot_longer(names_to = "type", values_to = "n", c(-prov, -date)) %>% 
-  ggplot(aes(x = date, y = n, linetype = type, colour = prov)) + geom_smooth(span = 0.3)
+  ggplot(aes(x = date, y = n, linetype = type, colour = prov)) + geom_smooth(span = 0.3) + 
+  ylab("Cases")
+```
+
+The difference in magnitude of deaths vs. cases makes it impossible to see detail in the number of deaths
+
+```{r}
+covid %>%
+  group_by(prov = ifelse(prov %in% c("Ontario", "Quebec"), prov, "RoC"), date) %>% 
+  summarize_all(sum) %>% 
+  select(prov, date, totalcases, numdeaths) %>% 
+  mutate(numdeaths = 100 + numdeaths * 80) %>% 
+  pivot_longer(names_to = "type", values_to = "n", c(-prov, -date)) %>% 
+  ggplot(aes(x = date, y = n, linetype = type, colour = prov)) + geom_smooth(span = 0.3) + 
+  scale_y_continuous(sec.axis = sec_axis(~( . / 80)-100, name = "Deaths"), name = "Cases")
 ```
 
 Now look at this one:
@@ -813,7 +838,8 @@ backpacks %>% nest(data = -Sex) %>%
   mutate(ci=map(t_test, "conf.int")) %>% 
   unnest(ci) %>% 
   mutate(end=c("L", "U", "L", "U")) %>% 
-  pivot_wider(names_from=end, values_from=ci)
+  pivot_wider(names_from=end, values_from=ci) %>% 
+  select(-data, -t_test)
 ```
 
 On average, we estimate female students to carry a mean of between 7% and 9% of their body weight in their backpacks, and males a mean of between 6.2% and 8.4%.
@@ -869,6 +895,6 @@ athletes %>% nest(data = -Sport) %>%
 
 ## Resources
 
-- [Cheatsheets](https://rstudio.com/resources/cheatsheets/) from RStudio Cloud
-- [R for Data Science](https://r4ds.had.co.nz/) - book by creator of Tidyverse, Hadley Wickham 
+- [Cheatsheets](https://posit.cloud/learn/cheat-sheets) from Posit Cloud
+- [R for Data Science (2e)](https://r4ds.hadley.nz/) - book by creator of Tidyverse, Hadley Wickham 
 - [Data Science with R](https://robust-tools.djnavarro.net/) - introductory course by Danielle Navarro
